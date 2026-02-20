@@ -1,6 +1,8 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { PhiField } from '../components/PhiField';
+import { ageGroupFromAge } from '../utils';
 import type { StepProps } from '../common';
+import type { CandidateArticle, SearchKeywords, WizardData } from '../types';
 
 const copyText = async (value: string): Promise<void> => {
   try {
@@ -10,9 +12,71 @@ const copyText = async (value: string): Promise<void> => {
   }
 };
 
+const uniqueTerms = (values: string[]): string[] =>
+  Array.from(new Set(values.map((v) => v.trim()).filter(Boolean)));
+
+const buildQueries = (finalPico: string, keywords: SearchKeywords): WizardData['step3']['queries'] => {
+  const p = keywords.population.join(' OR ');
+  const i = keywords.intervention.join(' OR ');
+  const o = keywords.outcome.join(' OR ');
+
+  return {
+    fullPico: finalPico || '[Add final PICO in Step 2]',
+    keywordOnly: `${p} AND ${i} AND ${o}`,
+    interventionFocused: `${i} AND (${p})`,
+    outcomeFocused: `${o} AND (${p})`,
+  };
+};
+
 export const Step3SearchPlan: React.FC<StepProps> = ({ state, setState, onPhiWarning }) => {
   const [chipsInput, setChipsInput] = useState({ population: '', intervention: '', outcome: '' });
   const [copied, setCopied] = useState('');
+
+  useEffect(() => {
+    if (state.step3.keywordsEdited) return;
+
+    // Auto-derive keyword buckets from Case Snapshot + PICO so Step 3 starts pre-filled.
+    const population = uniqueTerms([
+      state.step2.builder.p,
+      ageGroupFromAge(state.caseSnapshot.age),
+      state.caseSnapshot.setting,
+      state.caseSnapshot.initialTarget,
+      ...state.caseSnapshot.concerns,
+    ]);
+    const intervention = uniqueTerms([state.step2.builder.i, ...state.step2.keywords]);
+    const outcome = uniqueTerms([state.step2.builder.o, state.step2.builder.measurement, state.step2.builder.timeframe]);
+    const keywordColumns = { population, intervention, outcome };
+    const queries = buildQueries(state.step2.finalPico, keywordColumns);
+
+    const sameKeywords = JSON.stringify(state.step3.keywordColumns) === JSON.stringify(keywordColumns);
+    const sameQueries = JSON.stringify(state.step3.queries) === JSON.stringify(queries);
+    if (sameKeywords && sameQueries) return;
+
+    setState((prev: WizardData) => ({
+      ...prev,
+      step3: {
+        ...prev.step3,
+        keywordColumns,
+        queries,
+      },
+    }));
+  }, [
+    setState,
+    state.caseSnapshot.age,
+    state.caseSnapshot.concerns,
+    state.caseSnapshot.initialTarget,
+    state.caseSnapshot.setting,
+    state.step2.builder.i,
+    state.step2.builder.measurement,
+    state.step2.builder.o,
+    state.step2.builder.p,
+    state.step2.builder.timeframe,
+    state.step2.finalPico,
+    state.step2.keywords,
+    state.step3.keywordsEdited,
+    state.step3.keywordColumns,
+    state.step3.queries,
+  ]);
 
   const addChips = (key: 'population' | 'intervention' | 'outcome'): void => {
     const values = chipsInput[key]
@@ -21,10 +85,11 @@ export const Step3SearchPlan: React.FC<StepProps> = ({ state, setState, onPhiWar
       .filter(Boolean);
     if (!values.length) return;
 
-    setState((prev) => ({
+    setState((prev: WizardData) => ({
       ...prev,
       step3: {
         ...prev.step3,
+        keywordsEdited: true,
         keywordColumns: {
           ...prev.step3.keywordColumns,
           [key]: Array.from(new Set([...prev.step3.keywordColumns[key], ...values])),
@@ -35,21 +100,12 @@ export const Step3SearchPlan: React.FC<StepProps> = ({ state, setState, onPhiWar
   };
 
   const generateQueries = (): void => {
-    const finalPico = state.step2.finalPico || '[Add final PICO in Step 2]';
-    const p = state.step3.keywordColumns.population.join(' OR ');
-    const i = state.step3.keywordColumns.intervention.join(' OR ');
-    const o = state.step3.keywordColumns.outcome.join(' OR ');
-
-    setState((prev) => ({
+    setState((prev: WizardData) => ({
       ...prev,
       step3: {
         ...prev.step3,
-        queries: {
-          fullPico: finalPico,
-          keywordOnly: `${p} AND ${i} AND ${o}`,
-          interventionFocused: `${i} AND (${p})`,
-          outcomeFocused: `${o} AND (${p})`,
-        },
+        keywordsEdited: true,
+        queries: buildQueries(prev.step2.finalPico, prev.step3.keywordColumns),
       },
     }));
   };
@@ -78,10 +134,11 @@ export const Step3SearchPlan: React.FC<StepProps> = ({ state, setState, onPhiWar
                   className="chip selected"
                   key={chip}
                   onClick={() =>
-                    setState((prev) => ({
+                    setState((prev: WizardData) => ({
                       ...prev,
                       step3: {
                         ...prev.step3,
+                        keywordsEdited: true,
                         keywordColumns: {
                           ...prev.step3.keywordColumns,
                           [key]: prev.step3.keywordColumns[key].filter((v) => v !== chip),
@@ -115,9 +172,13 @@ export const Step3SearchPlan: React.FC<StepProps> = ({ state, setState, onPhiWar
               <textarea
                 value={state.step3.queries[key]}
                 onChange={(e) =>
-                  setState((prev) => ({
+                  setState((prev: WizardData) => ({
                     ...prev,
-                    step3: { ...prev.step3, queries: { ...prev.step3.queries, [key]: e.target.value } },
+                    step3: {
+                      ...prev.step3,
+                      keywordsEdited: true,
+                      queries: { ...prev.step3.queries, [key]: e.target.value },
+                    },
                   }))
                 }
               />
@@ -137,17 +198,35 @@ export const Step3SearchPlan: React.FC<StepProps> = ({ state, setState, onPhiWar
         ))}
       </div>
 
-      <h3>Candidate articles (at least 8 titles)</h3>
+      <h3>Candidate articles (at least 2 titles)</h3>
       {state.step3.candidateArticles.map((a, idx) => (
         <article className="card" key={a.id}>
-          <h4>Article {idx + 1}</h4>
+          <div className="buttonRow">
+            <h4>Article {idx + 1}</h4>
+            <button
+              type="button"
+              className="ghost"
+              disabled={state.step3.candidateArticles.length <= 2}
+              onClick={() =>
+                setState((prev: WizardData) => ({
+                  ...prev,
+                  step3: {
+                    ...prev.step3,
+                    candidateArticles: prev.step3.candidateArticles.filter((row: CandidateArticle) => row.id !== a.id),
+                  },
+                }))
+              }
+            >
+              Remove Article
+            </button>
+          </div>
           <PhiField
             fieldId={`step3_title_${a.id}`}
             label={`Article ${idx + 1} title`}
             value={a.title}
             ignored={!!state.phiIgnoredFields[`step3_title_${a.id}`]}
             onToggleIgnore={(checked) =>
-              setState((prev) => ({
+              setState((prev: WizardData) => ({
                 ...prev,
                 phiIgnoredFields: { ...prev.phiIgnoredFields, [`step3_title_${a.id}`]: checked },
               }))
@@ -159,11 +238,11 @@ export const Step3SearchPlan: React.FC<StepProps> = ({ state, setState, onPhiWar
               <input
                 value={a.title}
                 onChange={(e) =>
-                  setState((prev) => ({
+                  setState((prev: WizardData) => ({
                     ...prev,
                     step3: {
                       ...prev.step3,
-                      candidateArticles: prev.step3.candidateArticles.map((row) =>
+                      candidateArticles: prev.step3.candidateArticles.map((row: CandidateArticle) =>
                         row.id === a.id ? { ...row, title: e.target.value } : row,
                       ),
                     },
@@ -178,11 +257,11 @@ export const Step3SearchPlan: React.FC<StepProps> = ({ state, setState, onPhiWar
               <input
                 value={a.year}
                 onChange={(e) =>
-                  setState((prev) => ({
+                  setState((prev: WizardData) => ({
                     ...prev,
                     step3: {
                       ...prev.step3,
-                      candidateArticles: prev.step3.candidateArticles.map((row) =>
+                      candidateArticles: prev.step3.candidateArticles.map((row: CandidateArticle) =>
                         row.id === a.id ? { ...row, year: e.target.value } : row,
                       ),
                     },
@@ -195,11 +274,11 @@ export const Step3SearchPlan: React.FC<StepProps> = ({ state, setState, onPhiWar
               <input
                 value={a.link}
                 onChange={(e) =>
-                  setState((prev) => ({
+                  setState((prev: WizardData) => ({
                     ...prev,
                     step3: {
                       ...prev.step3,
-                      candidateArticles: prev.step3.candidateArticles.map((row) =>
+                      candidateArticles: prev.step3.candidateArticles.map((row: CandidateArticle) =>
                         row.id === a.id ? { ...row, link: e.target.value } : row,
                       ),
                     },
@@ -212,11 +291,11 @@ export const Step3SearchPlan: React.FC<StepProps> = ({ state, setState, onPhiWar
               <input
                 value={a.notes}
                 onChange={(e) =>
-                  setState((prev) => ({
+                  setState((prev: WizardData) => ({
                     ...prev,
                     step3: {
                       ...prev.step3,
-                      candidateArticles: prev.step3.candidateArticles.map((row) =>
+                      candidateArticles: prev.step3.candidateArticles.map((row: CandidateArticle) =>
                         row.id === a.id ? { ...row, notes: e.target.value } : row,
                       ),
                     },
@@ -231,7 +310,7 @@ export const Step3SearchPlan: React.FC<StepProps> = ({ state, setState, onPhiWar
         type="button"
         className="ghost"
         onClick={() =>
-          setState((prev) => ({
+          setState((prev: WizardData) => ({
             ...prev,
             step3: {
               ...prev.step3,
@@ -240,7 +319,7 @@ export const Step3SearchPlan: React.FC<StepProps> = ({ state, setState, onPhiWar
           }))
         }
       >
-        Add candidate article row
+        Add Article
       </button>
     </section>
   );

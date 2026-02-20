@@ -43,6 +43,7 @@ export const getDefaultState = (): WizardData => ({
     prompt: '',
   },
   step3: {
+    keywordsEdited: false,
     keywordColumns: {
       population: [],
       intervention: [],
@@ -54,7 +55,7 @@ export const getDefaultState = (): WizardData => ({
       interventionFocused: '',
       outcomeFocused: '',
     },
-    candidateArticles: Array.from({ length: 8 }).map(() => ({
+    candidateArticles: Array.from({ length: 2 }).map(() => ({
       id: crypto.randomUUID(),
       title: '',
       year: '',
@@ -102,6 +103,10 @@ export const loadState = (): WizardData => {
     const parsed = JSON.parse(raw) as WizardData;
     if (!parsed.version || parsed.version !== APP_VERSION) {
       return getDefaultState();
+    }
+    // Backward compatibility for older saved state created before keywordsEdited existed.
+    if (typeof parsed.step3.keywordsEdited !== 'boolean') {
+      parsed.step3.keywordsEdited = false;
     }
     return parsed;
   } catch {

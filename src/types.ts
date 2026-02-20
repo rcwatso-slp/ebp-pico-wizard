@@ -91,6 +91,8 @@ export interface CandidateArticle {
 }
 
 export interface Step3State {
+  // Prevents auto-derivation from overwriting user-customized keywords/queries.
+  keywordsEdited: boolean;
   keywordColumns: SearchKeywords;
   queries: {
     fullPico: string;

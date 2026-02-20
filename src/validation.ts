@@ -18,11 +18,11 @@ export const isStep1Complete = (s: WizardData): boolean => {
 
 export const isStep2Complete = (s: WizardData): boolean => s.step2.picoLocked && hasText(s.step2.finalPico) && s.step2.keywords.length >= 10;
 
-export const isStep3Complete = (s: WizardData): boolean => s.step3.candidateArticles.filter((a) => hasText(a.title)).length >= 8;
+export const isStep3Complete = (s: WizardData): boolean => s.step3.candidateArticles.filter((a) => hasText(a.title)).length >= 2;
 
 export const isStep4Complete = (s: WizardData): boolean => {
   const selected = Object.values(s.step4.scores).filter((v) => v.includeTop).length;
-  return selected >= 3 && selected <= 5;
+  return selected >= 2 && selected <= 5;
 };
 
 export const isStep5Complete = (s: WizardData): boolean => {
@@ -44,7 +44,7 @@ export const isStep5Complete = (s: WizardData): boolean => {
     );
   }).length;
 
-  return completed >= 3;
+  return completed >= 2;
 };
 
 export const isStep6Complete = (s: WizardData): boolean => {

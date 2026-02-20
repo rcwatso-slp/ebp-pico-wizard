@@ -45,7 +45,7 @@ export const Step5Extraction: React.FC<StepProps> = ({ state, setState, onPhiWar
   return (
     <section>
       <h2>Step 5: Evidence Extraction Table</h2>
-      <p className="muted">Complete required fields for at least 3 selected top articles.</p>
+      <p className="muted">Complete required fields for at least 2 selected top articles.</p>
       {topIds.map((id) => {
         const article = state.step3.candidateArticles.find((a) => a.id === id);
         const extraction = state.step5.extractions[id];

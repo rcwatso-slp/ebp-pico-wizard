@@ -46,7 +46,7 @@ export const Step4Screening: React.FC<StepProps> = ({ state, setState }) => {
         <button type="button" onClick={() => setState((prev) => ({ ...prev, step4: { ...prev.step4, autoSort: !prev.step4.autoSort } }))}>
           {state.step4.autoSort ? 'Disable auto sort (manual mode)' : 'Enable auto sort (score mode)'}
         </button>
-        <p className={`pill ${topCount < 3 || topCount > 5 ? 'warn' : ''}`}>Top selected: {topCount} (required: 3-5)</p>
+        <p className={`pill ${topCount < 2 || topCount > 5 ? 'warn' : ''}`}>Top selected: {topCount} (required: 2-5)</p>
       </div>
 
       <div className="tableWrap">
