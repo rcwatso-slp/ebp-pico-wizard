@@ -1,0 +1,29 @@
+@media print {
+  body {
+    background: white;
+    color: black;
+    font-size: 11pt;
+  }
+
+  button,
+  .tipsDesktop,
+  .tipsMobile,
+  .phiBanner,
+  .navFooter,
+  .progressBar,
+  .topBar,
+  .toastHost {
+    display: none !important;
+  }
+
+  .exportSection {
+    page-break-inside: avoid;
+    border: none;
+    padding: 0;
+    margin: 0 0 16pt 0;
+  }
+
+  .exportSection:not(:first-of-type) {
+    page-break-before: always;
+  }
+}
