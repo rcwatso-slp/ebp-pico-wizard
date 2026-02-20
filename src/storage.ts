@@ -55,6 +55,7 @@ export const getDefaultState = (): WizardData => ({
       interventionFocused: '',
       outcomeFocused: '',
     },
+    elicitPrompt: '',
     candidateArticles: Array.from({ length: 2 }).map(() => ({
       id: crypto.randomUUID(),
       title: '',
@@ -107,6 +108,9 @@ export const loadState = (): WizardData => {
     // Backward compatibility for older saved state created before keywordsEdited existed.
     if (typeof parsed.step3.keywordsEdited !== 'boolean') {
       parsed.step3.keywordsEdited = false;
+    }
+    if (typeof parsed.step3.elicitPrompt !== 'string') {
+      parsed.step3.elicitPrompt = '';
     }
     return parsed;
   } catch {

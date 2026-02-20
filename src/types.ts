@@ -100,6 +100,7 @@ export interface Step3State {
     interventionFocused: string;
     outcomeFocused: string;
   };
+  elicitPrompt: string;
   candidateArticles: CandidateArticle[];
 }
 

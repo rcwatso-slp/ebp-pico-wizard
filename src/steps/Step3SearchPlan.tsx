@@ -28,6 +28,33 @@ const buildQueries = (finalPico: string, keywords: SearchKeywords): WizardData['
   };
 };
 
+const buildElicitPrompt = (state: WizardData): string => {
+  const { queries, keywordColumns } = state.step3;
+  const population = keywordColumns.population.join(', ') || 'none';
+  const intervention = keywordColumns.intervention.join(', ') || 'none';
+  const outcome = keywordColumns.outcome.join(', ') || 'none';
+
+  return [
+    'You are helping with an evidence-based search for an SLP student clinician.',
+    `Case context: ${state.caseSnapshot.setting || 'clinical setting'}; age group: ${ageGroupFromAge(state.caseSnapshot.age)}; concerns: ${state.caseSnapshot.concerns.join(', ') || 'not specified'}.`,
+    `Final PICO: ${state.step2.finalPico || '[missing final PICO]'}`,
+    '',
+    'Search queries to run:',
+    `1) Full PICO sentence: ${queries.fullPico}`,
+    `2) Keyword-only (P+I+O): ${queries.keywordOnly}`,
+    `3) Intervention-focused: ${queries.interventionFocused}`,
+    `4) Outcome-focused: ${queries.outcomeFocused}`,
+    '',
+    `Keyword banks -> Population: ${population}; Intervention: ${intervention}; Outcome: ${outcome}.`,
+    '',
+    'Task:',
+    '- Return the best matching peer-reviewed studies (or high-quality foundational papers if limited).',
+    '- Prioritize direct relevance to population, intervention, and outcomes.',
+    '- Include citation, year, link/DOI, study design, and a 1-2 sentence relevance note for each result.',
+    '- Return at least 8 candidate articles and rank them from strongest to weakest match.',
+  ].join('\n');
+};
+
 export const Step3SearchPlan: React.FC<StepProps> = ({ state, setState, onPhiWarning }) => {
   const [chipsInput, setChipsInput] = useState({ population: '', intervention: '', outcome: '' });
   const [copied, setCopied] = useState('');
@@ -196,6 +223,42 @@ export const Step3SearchPlan: React.FC<StepProps> = ({ state, setState, onPhiWar
             </button>
           </div>
         ))}
+      </div>
+
+      <div className="card">
+        <div className="buttonRow">
+          <h3>Full Elicit Prompt Generator</h3>
+          <button
+            type="button"
+            onClick={() =>
+              setState((prev: WizardData) => ({
+                ...prev,
+                step3: {
+                  ...prev.step3,
+                  elicitPrompt: buildElicitPrompt(prev),
+                },
+              }))
+            }
+          >
+            Generate full Elicit prompt
+          </button>
+        </div>
+        <label>
+          Copy/paste prompt for Elicit
+          <textarea value={state.step3.elicitPrompt} readOnly />
+        </label>
+        <button
+          type="button"
+          className="ghost"
+          disabled={!state.step3.elicitPrompt.trim()}
+          onClick={async () => {
+            await copyText(state.step3.elicitPrompt);
+            setCopied('elicitPrompt');
+            window.setTimeout(() => setCopied(''), 1200);
+          }}
+        >
+          {copied === 'elicitPrompt' ? 'Copied ✓' : 'Copy full prompt'}
+        </button>
       </div>
 
       <h3>Candidate articles (at least 2 titles)</h3>
