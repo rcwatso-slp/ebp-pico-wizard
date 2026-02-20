@@ -11,6 +11,21 @@ export const ExportView: React.FC<ExportViewProps> = ({ state }) => {
   const topIds = Object.values(state.step4.scores)
     .filter((s) => s.includeTop)
     .map((s) => s.articleId);
+  const fullElicitPrompt =
+    state.step3.elicitPrompt.trim() ||
+    [
+      'You are helping with an evidence-based search for an SLP student clinician.',
+      `Case snapshot: ${buildCaseSnapshotText(state)}`,
+      `Final PICO: ${state.step2.finalPico || '[missing final PICO]'}`,
+      '',
+      'Search queries to run:',
+      `1) Full PICO sentence: ${state.step3.queries.fullPico}`,
+      `2) Keyword-only (P+I+O): ${state.step3.queries.keywordOnly}`,
+      `3) Intervention-focused: ${state.step3.queries.interventionFocused}`,
+      `4) Outcome-focused: ${state.step3.queries.outcomeFocused}`,
+      '',
+      'Task: return and rank relevant peer-reviewed or foundational studies with citation, year, link/DOI, design, and brief relevance note.',
+    ].join('\n');
 
   return (
     <div className="exportPage">
@@ -40,6 +55,11 @@ export const ExportView: React.FC<ExportViewProps> = ({ state }) => {
           <li><strong>Intervention-focused:</strong> {state.step3.queries.interventionFocused}</li>
           <li><strong>Outcome-focused:</strong> {state.step3.queries.outcomeFocused}</li>
         </ul>
+      </section>
+
+      <section className="exportSection">
+        <h2>Full Elicit Prompt</h2>
+        <pre style={{ whiteSpace: 'pre-wrap', margin: 0 }}>{fullElicitPrompt}</pre>
       </section>
 
       <section className="exportSection">
