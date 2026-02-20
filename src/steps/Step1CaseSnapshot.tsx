@@ -1,6 +1,6 @@
 import React from 'react';
 import { PhiField } from '../components/PhiField';
-import type { Concern, ConstraintKey, Setting } from '../types';
+import type { AssessmentAnchor, Concern, ConstraintKey, Setting, WizardData } from '../types';
 import { ageGroupFromAge, buildCaseSnapshotText, concernOptions, constraintOptions } from '../utils';
 import type { StepProps } from '../common';
 
@@ -8,25 +8,25 @@ const settingOptions = ['University clinic', 'School', 'Outpatient', 'SNF/Rehab'
 
 export const Step1CaseSnapshot: React.FC<StepProps> = ({ state, setState, onPhiWarning }) => {
   const cs = state.caseSnapshot;
-  const toggleConcern = (value: (typeof concernOptions)[number]): void => {
-    setState((prev) => ({
+  const toggleConcern = (value: Concern): void => {
+    setState((prev: WizardData) => ({
       ...prev,
       caseSnapshot: {
         ...prev.caseSnapshot,
         concerns: prev.caseSnapshot.concerns.includes(value)
-          ? prev.caseSnapshot.concerns.filter((c) => c !== value)
+          ? prev.caseSnapshot.concerns.filter((c: Concern) => c !== value)
           : [...prev.caseSnapshot.concerns, value],
       },
     }));
   };
 
   const toggleConstraint = (value: ConstraintKey): void => {
-    setState((prev) => ({
+    setState((prev: WizardData) => ({
       ...prev,
       caseSnapshot: {
         ...prev.caseSnapshot,
         constraints: prev.caseSnapshot.constraints.includes(value)
-          ? prev.caseSnapshot.constraints.filter((c) => c !== value)
+          ? prev.caseSnapshot.constraints.filter((c: ConstraintKey) => c !== value)
           : [...prev.caseSnapshot.constraints, value],
       },
     }));
@@ -41,7 +41,7 @@ export const Step1CaseSnapshot: React.FC<StepProps> = ({ state, setState, onPhiW
           <select
             value={cs.setting}
             onChange={(e) =>
-              setState((prev) => ({
+              setState((prev: WizardData) => ({
                 ...prev,
                 caseSnapshot: { ...prev.caseSnapshot, setting: e.target.value as Setting },
               }))
@@ -63,7 +63,7 @@ export const Step1CaseSnapshot: React.FC<StepProps> = ({ state, setState, onPhiW
             min={0}
             value={cs.age}
             onChange={(e) =>
-              setState((prev) => ({
+              setState((prev: WizardData) => ({
                 ...prev,
                 caseSnapshot: { ...prev.caseSnapshot, age: e.target.value ? Number(e.target.value) : '' },
               }))
@@ -77,7 +77,7 @@ export const Step1CaseSnapshot: React.FC<StepProps> = ({ state, setState, onPhiW
       <fieldset>
         <legend>Disorder/Concern *</legend>
         <div className="chipsWrap">
-          {concernOptions.map((c) => (
+          {concernOptions.map((c: Concern) => (
             <label key={c} className={`chip ${cs.concerns.includes(c) ? 'selected' : ''}`}>
               <input type="checkbox" checked={cs.concerns.includes(c)} onChange={() => toggleConcern(c)} />
               {c}
@@ -92,7 +92,7 @@ export const Step1CaseSnapshot: React.FC<StepProps> = ({ state, setState, onPhiW
         value={cs.functionalProblem}
         ignored={!!state.phiIgnoredFields.step1_functional_problem}
         onToggleIgnore={(checked) =>
-          setState((prev) => ({ ...prev, phiIgnoredFields: { ...prev.phiIgnoredFields, step1_functional_problem: checked } }))
+          setState((prev: WizardData) => ({ ...prev, phiIgnoredFields: { ...prev.phiIgnoredFields, step1_functional_problem: checked } }))
         }
         onWarning={onPhiWarning}
       >
@@ -101,7 +101,7 @@ export const Step1CaseSnapshot: React.FC<StepProps> = ({ state, setState, onPhiW
           <textarea
             value={cs.functionalProblem}
             onChange={(e) =>
-              setState((prev) => ({
+              setState((prev: WizardData) => ({
                 ...prev,
                 caseSnapshot: { ...prev.caseSnapshot, functionalProblem: e.target.value },
               }))
@@ -118,11 +118,11 @@ export const Step1CaseSnapshot: React.FC<StepProps> = ({ state, setState, onPhiW
             <input
               value={a.measure}
               onChange={(e) =>
-                setState((prev) => ({
+                setState((prev: WizardData) => ({
                   ...prev,
                   caseSnapshot: {
                     ...prev.caseSnapshot,
-                    assessmentAnchors: prev.caseSnapshot.assessmentAnchors.map((row) =>
+                    assessmentAnchors: prev.caseSnapshot.assessmentAnchors.map((row: AssessmentAnchor) =>
                       row.id === a.id ? { ...row, measure: e.target.value } : row,
                     ),
                   },
@@ -135,11 +135,11 @@ export const Step1CaseSnapshot: React.FC<StepProps> = ({ state, setState, onPhiW
             <input
               value={a.finding}
               onChange={(e) =>
-                setState((prev) => ({
+                setState((prev: WizardData) => ({
                   ...prev,
                   caseSnapshot: {
                     ...prev.caseSnapshot,
-                    assessmentAnchors: prev.caseSnapshot.assessmentAnchors.map((row) =>
+                    assessmentAnchors: prev.caseSnapshot.assessmentAnchors.map((row: AssessmentAnchor) =>
                       row.id === a.id ? { ...row, finding: e.target.value } : row,
                     ),
                   },
@@ -152,11 +152,13 @@ export const Step1CaseSnapshot: React.FC<StepProps> = ({ state, setState, onPhiW
               type="button"
               className="ghost"
               onClick={() =>
-                setState((prev) => ({
+                setState((prev: WizardData) => ({
                   ...prev,
                   caseSnapshot: {
                     ...prev.caseSnapshot,
-                    assessmentAnchors: prev.caseSnapshot.assessmentAnchors.filter((row) => row.id !== a.id),
+                    assessmentAnchors: prev.caseSnapshot.assessmentAnchors.filter(
+                      (row: AssessmentAnchor) => row.id !== a.id,
+                    ),
                   },
                 }))
               }
@@ -170,7 +172,7 @@ export const Step1CaseSnapshot: React.FC<StepProps> = ({ state, setState, onPhiW
         type="button"
         className="ghost"
         onClick={() =>
-          setState((prev) => ({
+          setState((prev: WizardData) => ({
             ...prev,
             caseSnapshot: {
               ...prev.caseSnapshot,
@@ -187,17 +189,17 @@ export const Step1CaseSnapshot: React.FC<StepProps> = ({ state, setState, onPhiW
         <select
           value={cs.initialTarget}
           onChange={(e) =>
-            setState((prev) => ({
+            setState((prev: WizardData) => ({
               ...prev,
               caseSnapshot: { ...prev.caseSnapshot, initialTarget: e.target.value as Concern },
             }))
           }
-        >
-          <option value="">Select</option>
-          {concernOptions.map((c) => (
-            <option key={c} value={c}>
-              {c}
-            </option>
+          >
+            <option value="">Select</option>
+            {concernOptions.map((c: Concern) => (
+              <option key={c} value={c}>
+                {c}
+              </option>
           ))}
         </select>
       </label>
@@ -205,7 +207,7 @@ export const Step1CaseSnapshot: React.FC<StepProps> = ({ state, setState, onPhiW
       <fieldset>
         <legend>Constraints * (pick at least one)</legend>
         <div className="chipsWrap">
-          {constraintOptions.map((c) => (
+          {constraintOptions.map((c: ConstraintKey) => (
             <label key={c} className={`chip ${cs.constraints.includes(c) ? 'selected' : ''}`}>
               <input type="checkbox" checked={cs.constraints.includes(c)} onChange={() => toggleConstraint(c)} />
               {c}
@@ -220,7 +222,7 @@ export const Step1CaseSnapshot: React.FC<StepProps> = ({ state, setState, onPhiW
         value={cs.constraintNotes}
         ignored={!!state.phiIgnoredFields.step1_constraints_notes}
         onToggleIgnore={(checked) =>
-          setState((prev) => ({ ...prev, phiIgnoredFields: { ...prev.phiIgnoredFields, step1_constraints_notes: checked } }))
+          setState((prev: WizardData) => ({ ...prev, phiIgnoredFields: { ...prev.phiIgnoredFields, step1_constraints_notes: checked } }))
         }
         onWarning={onPhiWarning}
       >
@@ -229,7 +231,7 @@ export const Step1CaseSnapshot: React.FC<StepProps> = ({ state, setState, onPhiW
           <textarea
             value={cs.constraintNotes}
             onChange={(e) =>
-              setState((prev) => ({ ...prev, caseSnapshot: { ...prev.caseSnapshot, constraintNotes: e.target.value } }))
+              setState((prev: WizardData) => ({ ...prev, caseSnapshot: { ...prev.caseSnapshot, constraintNotes: e.target.value } }))
             }
           />
         </label>

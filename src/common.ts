@@ -1,5 +1,5 @@
 import type { Dispatch, SetStateAction } from 'react';
-import type { WizardData } from '../types';
+import type { WizardData } from './types';
 
 export interface StepProps {
   state: WizardData;

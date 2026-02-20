@@ -1,3 +1,4 @@
+import type { WizardData } from '../types';
 import React from 'react';
 import type { StepProps } from '../common';
 
@@ -10,7 +11,7 @@ export const Step0Welcome: React.FC<StepProps> = ({ state, setState }) => (
         type="checkbox"
         checked={state.step0.noPhi}
         onChange={(e) =>
-          setState((prev) => ({
+          setState((prev: WizardData) => ({
             ...prev,
             step0: { ...prev.step0, noPhi: e.target.checked },
           }))
@@ -23,7 +24,7 @@ export const Step0Welcome: React.FC<StepProps> = ({ state, setState }) => (
         type="checkbox"
         checked={state.step0.verifySources}
         onChange={(e) =>
-          setState((prev) => ({
+          setState((prev: WizardData) => ({
             ...prev,
             step0: { ...prev.step0, verifySources: e.target.checked },
           }))
