@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
-import { PhiField } from '../components/PhiField';
+import { LiteratureSearch } from '../components/LiteratureSearch';
+import { hitLink, type SearchHit, type SearchSource } from '../search';
 import { ageGroupFromAge } from '../utils';
 import type { StepProps } from '../common';
 import type { CandidateArticle, SearchKeywords, WizardData } from '../types';
@@ -15,16 +16,32 @@ const copyText = async (value: string): Promise<void> => {
 const uniqueTerms = (values: string[]): string[] =>
   Array.from(new Set(values.map((v) => v.trim()).filter(Boolean)));
 
+const quoteTerm = (term: string): string => {
+  const t = term.trim();
+  if (!t) return '';
+  if (/^".*"$/.test(t) || !/\s/.test(t)) return t;
+  return `"${t.replace(/"/g, '')}"`;
+};
+
+// OR the synonyms inside one concept; parenthesize when there is more than one.
+const orGroup = (terms: string[]): string => {
+  const quoted = terms.map(quoteTerm).filter(Boolean);
+  if (quoted.length <= 1) return quoted[0] ?? '';
+  return `(${quoted.join(' OR ')})`;
+};
+
+const andGroups = (...groups: string[]): string => groups.filter(Boolean).join(' AND ');
+
 const buildQueries = (finalPico: string, keywords: SearchKeywords): WizardData['step3']['queries'] => {
-  const p = keywords.population.join(' OR ');
-  const i = keywords.intervention.join(' OR ');
-  const o = keywords.outcome.join(' OR ');
+  const p = orGroup(keywords.population);
+  const i = orGroup(keywords.intervention);
+  const o = orGroup(keywords.outcome);
 
   return {
     fullPico: finalPico || '[Add final PICO in Step 2]',
-    keywordOnly: `${p} AND ${i} AND ${o}`,
-    interventionFocused: `${i} AND (${p})`,
-    outcomeFocused: `${o} AND (${p})`,
+    keywordOnly: andGroups(p, i, o),
+    interventionFocused: andGroups(i, p),
+    outcomeFocused: andGroups(o, p),
   };
 };
 
@@ -55,7 +72,7 @@ const buildElicitPrompt = (state: WizardData): string => {
   ].join('\n');
 };
 
-export const Step3SearchPlan: React.FC<StepProps> = ({ state, setState, onPhiWarning }) => {
+export const Step3SearchPlan: React.FC<StepProps> = ({ state, setState }) => {
   const [chipsInput, setChipsInput] = useState({ population: '', intervention: '', outcome: '' });
   const [copied, setCopied] = useState('');
 
@@ -63,15 +80,15 @@ export const Step3SearchPlan: React.FC<StepProps> = ({ state, setState, onPhiWar
     if (state.step3.keywordsEdited) return;
 
     // Auto-derive keyword buckets from Case Snapshot + PICO so Step 3 starts pre-filled.
+    // Setting, age group, and timeframe would widen an OR'd concept rather than focus it,
+    // and Step 2 keywords are sorted by the student below.
     const population = uniqueTerms([
       state.step2.builder.p,
-      ageGroupFromAge(state.caseSnapshot.age),
-      state.caseSnapshot.setting,
-      state.caseSnapshot.initialTarget,
-      ...state.caseSnapshot.concerns,
+      state.caseSnapshot.initialTarget === 'other' ? '' : state.caseSnapshot.initialTarget,
+      ...state.caseSnapshot.concerns.filter((c) => c !== 'other'),
     ]);
-    const intervention = uniqueTerms([state.step2.builder.i, ...state.step2.keywords]);
-    const outcome = uniqueTerms([state.step2.builder.o, state.step2.builder.measurement, state.step2.builder.timeframe]);
+    const intervention = uniqueTerms([state.step2.builder.i]);
+    const outcome = uniqueTerms([state.step2.builder.o, state.step2.builder.measurement]);
     const keywordColumns = { population, intervention, outcome };
     const queries = buildQueries(state.step2.finalPico, keywordColumns);
 
@@ -89,17 +106,13 @@ export const Step3SearchPlan: React.FC<StepProps> = ({ state, setState, onPhiWar
     }));
   }, [
     setState,
-    state.caseSnapshot.age,
     state.caseSnapshot.concerns,
     state.caseSnapshot.initialTarget,
-    state.caseSnapshot.setting,
     state.step2.builder.i,
     state.step2.builder.measurement,
     state.step2.builder.o,
     state.step2.builder.p,
-    state.step2.builder.timeframe,
     state.step2.finalPico,
-    state.step2.keywords,
     state.step3.keywordsEdited,
     state.step3.keywordColumns,
     state.step3.queries,
@@ -126,6 +139,47 @@ export const Step3SearchPlan: React.FC<StepProps> = ({ state, setState, onPhiWar
     setChipsInput((prev) => ({ ...prev, [key]: '' }));
   };
 
+  const placeKeyword = (term: string, key: 'population' | 'intervention' | 'outcome'): void => {
+    setState((prev: WizardData) => {
+      const keywordColumns = {
+        ...prev.step3.keywordColumns,
+        [key]: Array.from(new Set([...prev.step3.keywordColumns[key], term])),
+      };
+      return {
+        ...prev,
+        step3: {
+          ...prev.step3,
+          keywordsEdited: true,
+          keywordColumns,
+          queries: buildQueries(prev.step2.finalPico, keywordColumns),
+        },
+      };
+    });
+  };
+
+  const sortedTerms = new Set(
+    [...state.step3.keywordColumns.population, ...state.step3.keywordColumns.intervention, ...state.step3.keywordColumns.outcome].map(
+      (t) => t.toLowerCase(),
+    ),
+  );
+  const unsortedKeywords = state.step2.keywords.filter((k) => !sortedTerms.has(k.toLowerCase()));
+
+  const addFromSearch = (hit: SearchHit, source: SearchSource): void => {
+    const article = {
+      title: hit.title,
+      year: hit.year,
+      link: hitLink(hit),
+      notes: `Found via ${source === 'pubmed' ? 'PubMed' : 'Europe PMC'}${hit.studyTypes.length ? ` (${hit.studyTypes.join(', ')})` : ''}`,
+    };
+    setState((prev: WizardData) => {
+      const blank = prev.step3.candidateArticles.find((a) => !a.title.trim() && !a.link.trim());
+      const candidateArticles = blank
+        ? prev.step3.candidateArticles.map((a) => (a.id === blank.id ? { ...a, ...article } : a))
+        : [...prev.step3.candidateArticles, { id: crypto.randomUUID(), ...article }];
+      return { ...prev, step3: { ...prev.step3, candidateArticles } };
+    });
+  };
+
   const generateQueries = (): void => {
     setState((prev: WizardData) => ({
       ...prev,
@@ -139,7 +193,35 @@ export const Step3SearchPlan: React.FC<StepProps> = ({ state, setState, onPhiWar
 
   return (
     <section>
-      <h2>Step 3: Search Plan (Elicit)</h2>
+      <h2>Step 3: Search Plan</h2>
+      <p className="muted">Group your keywords by concept, build queries, then search for candidate articles.</p>
+
+      {unsortedKeywords.length ? (
+        <div className="card">
+          <h3>Sort your Step 2 keywords</h3>
+          <p className="muted tiny">Which concept does each keyword describe? Click P, I, or O to place it in a column below.</p>
+          <ul className="sortList">
+            {unsortedKeywords.map((k) => (
+              <li key={k} className="sortItem">
+                <span>{k}</span>
+                {(['population', 'intervention', 'outcome'] as const).map((col) => (
+                  <button
+                    key={col}
+                    type="button"
+                    className="ghost small"
+                    title={`Add to ${col}`}
+                    aria-label={`Add ${k} to ${col}`}
+                    onClick={() => placeKeyword(k, col)}
+                  >
+                    {col[0].toUpperCase()}
+                  </button>
+                ))}
+              </li>
+            ))}
+          </ul>
+        </div>
+      ) : null}
+
       <div className="formGrid three">
         {(['population', 'intervention', 'outcome'] as const).map((key) => (
           <div key={key} className="card">
@@ -183,7 +265,7 @@ export const Step3SearchPlan: React.FC<StepProps> = ({ state, setState, onPhiWar
       </div>
 
       <button type="button" onClick={generateQueries}>
-        Elicit query generator
+        Rebuild queries from keywords
       </button>
 
       <div className="queryGrid">
@@ -225,9 +307,11 @@ export const Step3SearchPlan: React.FC<StepProps> = ({ state, setState, onPhiWar
         ))}
       </div>
 
+      <LiteratureSearch queries={state.step3.queries} articles={state.step3.candidateArticles} onAdd={addFromSearch} />
+
       <div className="card">
         <div className="buttonRow">
-          <h3>Full Elicit Prompt Generator</h3>
+          <h3>Optional: search with Elicit</h3>
           <button
             type="button"
             onClick={() =>
@@ -258,7 +342,10 @@ export const Step3SearchPlan: React.FC<StepProps> = ({ state, setState, onPhiWar
           }}
         >
           {copied === 'elicitPrompt' ? 'Copied ✓' : 'Copy full prompt'}
-        </button>
+        </button>{' '}
+        <a className="linkBtn" href="https://elicit.com" target="_blank" rel="noopener noreferrer">
+          Open Elicit
+        </a>
       </div>
 
       <h3>Candidate articles (at least 2 titles)</h3>
@@ -283,37 +370,23 @@ export const Step3SearchPlan: React.FC<StepProps> = ({ state, setState, onPhiWar
               Remove Article
             </button>
           </div>
-          <PhiField
-            fieldId={`step3_title_${a.id}`}
-            label={`Article ${idx + 1} title`}
-            value={a.title}
-            ignored={!!state.phiIgnoredFields[`step3_title_${a.id}`]}
-            onToggleIgnore={(checked) =>
-              setState((prev: WizardData) => ({
-                ...prev,
-                phiIgnoredFields: { ...prev.phiIgnoredFields, [`step3_title_${a.id}`]: checked },
-              }))
-            }
-            onWarning={onPhiWarning}
-          >
-            <label>
-              Title *
-              <input
-                value={a.title}
-                onChange={(e) =>
-                  setState((prev: WizardData) => ({
-                    ...prev,
-                    step3: {
-                      ...prev.step3,
-                      candidateArticles: prev.step3.candidateArticles.map((row: CandidateArticle) =>
-                        row.id === a.id ? { ...row, title: e.target.value } : row,
-                      ),
-                    },
-                  }))
-                }
-              />
-            </label>
-          </PhiField>
+          <label>
+            Title *
+            <input
+              value={a.title}
+              onChange={(e) =>
+                setState((prev: WizardData) => ({
+                  ...prev,
+                  step3: {
+                    ...prev.step3,
+                    candidateArticles: prev.step3.candidateArticles.map((row: CandidateArticle) =>
+                      row.id === a.id ? { ...row, title: e.target.value } : row,
+                    ),
+                  },
+                }))
+              }
+            />
+          </label>
           <div className="formGrid three">
             <label>
               Year

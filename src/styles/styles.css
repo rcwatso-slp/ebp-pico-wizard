@@ -461,3 +461,43 @@ section > button { margin-bottom: 1rem; }
   .navFooter .buttonRow { margin: 0; }
   .navFooter .buttonRow > * { flex: 1; }
 }
+
+/* ---------- Literature search ---------- */
+
+button.small, .linkBtn.small { padding: .3rem .65rem; font-size: .82rem; }
+.srOnly { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+
+.searchPanel { background: var(--surface); border-color: var(--primary-line); }
+.segmented { display: inline-flex; border: 1px solid var(--border-strong); border-radius: var(--radius-sm); overflow: hidden; margin-bottom: .4rem; }
+.segmented button { border: none; border-radius: 0; background: var(--surface); color: var(--text); font-weight: 500; }
+.segmented button + button { border-left: 1px solid var(--border-strong); }
+.segmented button.selected { background: var(--primary); color: #fff; font-weight: 600; }
+.segmented button:hover:not(.selected) { background: var(--surface-muted); color: var(--text); }
+
+.searchForm { display: flex; gap: .6rem; align-items: stretch; margin-bottom: .75rem; }
+.searchForm textarea { flex: 1; min-width: 0; min-height: 0; font-family: ui-monospace, "SF Mono", Menlo, monospace; font-size: .85rem; }
+.searchError { background: var(--danger-soft); color: var(--danger); border-radius: var(--radius-sm); padding: .55rem .75rem; font-size: .9rem; }
+.searchSummary { font-size: .92rem; margin-bottom: .6rem; }
+.searchSummary p { margin: .25rem 0 0; }
+
+.hitList { list-style: none; margin: 0 0 .75rem; padding: 0; display: grid; gap: .6rem; }
+.hit { border: 1px solid var(--border); border-radius: var(--radius-sm); padding: .75rem .85rem; background: var(--surface-muted); }
+.hitTitle { font-weight: 600; color: var(--primary); text-decoration: none; line-height: 1.35; }
+.hitTitle:hover { text-decoration: underline; }
+.hitMeta { font-size: .85rem; color: var(--text-muted); margin-top: .2rem; }
+.hitTags { display: flex; flex-wrap: wrap; gap: .3rem; margin-top: .4rem; }
+.tag { font-size: .75rem; font-weight: 600; padding: .1rem .5rem; border-radius: 999px; background: #eef1f6; color: #3a4a66; border: 1px solid #d5dce8; }
+.tag.free { background: var(--primary-soft); color: var(--primary); border-color: var(--primary-line); }
+.hitAbstract { font-size: .88rem; white-space: pre-line; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: .6rem .7rem; margin: .5rem 0 0; max-height: 18rem; overflow-y: auto; }
+.hitActions { display: flex; gap: .4rem; justify-content: flex-end; margin-top: .5rem; }
+
+.sortList { list-style: none; padding: 0; margin: 0; display: flex; flex-wrap: wrap; gap: .45rem; }
+.sortItem { display: inline-flex; align-items: center; gap: .25rem; background: var(--surface); border: 1px solid var(--border-strong); border-radius: 999px; padding: .2rem .25rem .2rem .75rem; font-size: .9rem; }
+.sortItem span { margin-right: .25rem; }
+.sortItem button { border-radius: 999px; width: 1.7rem; height: 1.7rem; padding: 0; }
+
+@media (max-width: 640px) {
+  .searchForm { flex-direction: column; }
+}
+.formGrid.three .chipsEditor { flex-wrap: wrap; }
+.formGrid.three .chipsEditor input { flex-basis: 100%; }

@@ -128,10 +128,11 @@ export const stepGuides: StepGuideContent[] = [
     why:
       'A planned search is reproducible and less likely to miss key studies. Grouping keywords by concept lets you build Boolean queries, and recording what you searched lets you (and your supervisor) see how you found your evidence.',
     steps: [
-      'Sort keywords into population, intervention, and outcome columns.',
+      'Sort your keywords into population, intervention, and outcome columns.',
       'Use OR between synonyms in the same column, and AND between columns.',
-      'Run the Elicit prompt, phrased as a research question.',
-      'Also check at least one other source, such as ASHA Evidence Maps, PubMed, or speechBITE.',
+      'Search PubMed or Europe PMC right here, and read the abstract before adding an article.',
+      'Use the study design tags (systematic review, randomized controlled trial) to spot stronger evidence early.',
+      'Optionally run the Elicit prompt, and check ASHA Evidence Maps or speechBITE.',
       'Record at least 2 candidate articles with title, year, and link.',
     ],
     examples: [
