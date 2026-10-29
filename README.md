@@ -5,8 +5,9 @@ Static React app for SLP student clinicians to complete a locked evidence-based 
 ## Features
 
 - Locked progression from Step 0 through Step 6.
+- Step-specific teaching guide beside each step: why it matters, what to do, weak vs. strong examples, common pitfalls, a self-check, and a 0–2 scoring rubric for Step 4 (content in `src/teaching.ts`).
 - Required field validation per step.
-- Step 4 Top Articles enforcement (min 3, max 5).
+- Step 4 Top Articles enforcement (min 2, max 5).
 - Step 5 extraction completion checks.
 - Step 6 goal/objective/method/progress/rationale requirements.
 - PHI safety banner + non-blocking pattern warnings (date-like or likely name patterns).

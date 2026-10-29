@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { Link, Navigate, Route, Routes, useNavigate } from 'react-router-dom';
 import { Layout } from './components/Layout';
 import { ProgressBar } from './components/ProgressBar';
+import { StepGuide } from './components/StepGuide';
 import { ToastHost, type ToastItem } from './components/ToastHost';
 import { clearState, getDefaultState, loadState, saveState } from './storage';
 import { ExportView } from './ExportView';
@@ -13,18 +14,6 @@ import { Step4Screening } from './steps/Step4Screening';
 import { Step5Extraction } from './steps/Step5Extraction';
 import { Step6Plan } from './steps/Step6Plan';
 import { completionByStep, getMaxUnlockedStep } from './validation';
-
-const tips = (
-  <div className="tips">
-    <h3>Quick Tips</h3>
-    <ul>
-      <li>Keep all case details de-identified.</li>
-      <li>Use concise, searchable intervention terms.</li>
-      <li>Score consistently before selecting top studies.</li>
-      <li>Tie goals directly to extracted findings.</li>
-    </ul>
-  </div>
-);
 
 const StepView: React.FC = () => {
   const [state, setState] = useState(loadState);
@@ -76,7 +65,7 @@ const StepView: React.FC = () => {
         <Route
           path="/"
           element={
-            <Layout tips={tips}>
+            <Layout tips={<StepGuide step={current} />}>
               <header className="topBar">
                 <h1>EBP Wizard: PICO → Elicit → Plan</h1>
                 <div className="buttonRow">

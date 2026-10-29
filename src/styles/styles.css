@@ -34,9 +34,28 @@ main {
   align-self: start;
   position: sticky;
   top: 1rem;
+  max-height: calc(100vh - 2rem);
+  overflow-y: auto;
 }
 
 .tipsMobile { display: none; }
+
+.guide h4 { margin: .9rem 0 .3rem; font-size: .95rem; }
+.guide p { margin: 0 0 .5rem; }
+.guideEyebrow { text-transform: uppercase; letter-spacing: .06em; font-size: .75rem; color: #3f6b57; font-weight: 600; }
+.guideList { margin: 0; padding-left: 1.2rem; display: grid; gap: .3rem; }
+.guideSection { border-top: 1px solid #d3ddd7; margin-top: .8rem; padding-top: .6rem; }
+.guideSection summary { cursor: pointer; font-weight: 600; margin-bottom: .5rem; }
+.example { background: #fff; border: 1px solid #d3ddd7; border-radius: 8px; padding: .6rem; margin-bottom: .6rem; }
+.exampleLabel { font-weight: 600; font-size: .9rem; }
+.exampleWeak, .exampleStrong { border-left: 4px solid; padding: .3rem .5rem; border-radius: 4px; }
+.exampleWeak { border-color: #b96e2d; background: #fff5e7; }
+.exampleStrong { border-color: #228b5f; background: #e8f6ef; }
+.exampleWeak span, .exampleStrong span { display: block; font-size: .75rem; font-weight: 700; text-transform: uppercase; letter-spacing: .05em; }
+.rubricRow { margin-bottom: .7rem; }
+.rubricRow dl { display: grid; grid-template-columns: 1.4rem 1fr; gap: .2rem .4rem; margin: .3rem 0 0; }
+.rubricRow dt { font-weight: 700; text-align: center; background: #fff; border: 1px solid #d3ddd7; border-radius: 4px; }
+.rubricRow dd { margin: 0; font-size: .9rem; }
 
 .topBar, .buttonRow { display: flex; justify-content: space-between; gap: .5rem; align-items: center; flex-wrap: wrap; }
 
@@ -66,6 +85,7 @@ main {
   border-radius: 8px;
   padding: .5rem;
   background: #fff;
+  color: #1e2a2b;
   display: flex;
   justify-content: space-between;
 }
@@ -162,7 +182,7 @@ th, td { border: 1px solid #d9e2dc; padding: .45rem; vertical-align: top; }
 @media (max-width: 980px) {
   .appGrid { grid-template-columns: 1fr; }
   .tipsDesktop { display: none; }
-  .tipsMobile { display: block; }
+  .tipsMobile { display: block; order: -1; }
   .accordionBtn { width: 100%; }
   .accordionBody { background: #ecf2ef; border: 1px solid #d3ddd7; border-radius: 8px; padding: .75rem; margin-top: .5rem; }
   .formGrid.two, .formGrid.three, .queryGrid, .progressBar { grid-template-columns: 1fr; }
