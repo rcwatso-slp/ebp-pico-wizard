@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { Link, Navigate, Route, Routes, useNavigate } from 'react-router-dom';
 import { Layout } from './components/Layout';
-import { ProgressBar } from './components/ProgressBar';
+import { ProgressBar, stepLabels } from './components/ProgressBar';
 import { StepGuide } from './components/StepGuide';
 import { ToastHost, type ToastItem } from './components/ToastHost';
 import { clearState, getDefaultState, loadState, saveState } from './storage';
@@ -13,7 +13,7 @@ import { Step3SearchPlan } from './steps/Step3SearchPlan';
 import { Step4Screening } from './steps/Step4Screening';
 import { Step5Extraction } from './steps/Step5Extraction';
 import { Step6Plan } from './steps/Step6Plan';
-import { completionByStep, getMaxUnlockedStep } from './validation';
+import { completionByStep, getMaxUnlockedStep, missingRequirements } from './validation';
 
 const StepView: React.FC = () => {
   const [state, setState] = useState(loadState);
@@ -37,6 +37,10 @@ const StepView: React.FC = () => {
     }
   }, [maxUnlocked, state.currentStep]);
 
+  useEffect(() => {
+    window.scrollTo({ top: 0 });
+  }, [state.currentStep]);
+
   const pushToast = (fieldId: string): void => {
     const item = { id: `${fieldId}_${Date.now()}`, message: 'Potential PHI pattern detected. Review highlighted field.' };
     setToasts((prev) => [...prev, item]);
@@ -58,6 +62,16 @@ const StepView: React.FC = () => {
     return <Step6Plan {...stepProps} />;
   };
 
+  const missing = missingRequirements(state, current);
+
+  const resetWizard = (): void => {
+    const ok = window.confirm('Start over? This erases all of your work saved in this browser and cannot be undone.');
+    if (!ok) return;
+    clearState();
+    setState(getDefaultState());
+    navigate('/');
+  };
+
   return (
     <>
       <ToastHost toasts={toasts} />
@@ -65,62 +79,85 @@ const StepView: React.FC = () => {
         <Route
           path="/"
           element={
-            <Layout tips={<StepGuide step={current} />}>
-              <header className="topBar">
-                <h1>EBP Wizard: PICO → Elicit → Plan</h1>
-                <div className="buttonRow">
-                  <span className="saveState">{saved ? 'Saved ✓' : ''}</span>
-                  <Link to="/export" className="linkBtn">
-                    Export Preview
-                  </Link>
-                  <button
-                    type="button"
-                    className="danger"
-                    onClick={() => {
-                      clearState();
-                      setState(getDefaultState());
-                      navigate('/');
-                    }}
-                  >
-                    Reset
-                  </button>
+            <>
+              <header className="appBar">
+                <div className="appBarInner">
+                  <div className="brand">
+                    <span className="brandMark" aria-hidden="true">EBP</span>
+                    <div>
+                      <strong>EBP Wizard</strong>
+                      <span className="brandSub">PICO &rarr; Search &rarr; Plan</span>
+                    </div>
+                  </div>
+                  <div className="appBarActions">
+                    <span className={`saveState ${saved ? 'flash' : ''}`} aria-live="polite">
+                      {saved ? 'Saved' : 'Saved in this browser'}
+                    </span>
+                    <Link to="/export" className="linkBtn">
+                      Export PDF
+                    </Link>
+                    <button type="button" className="danger" onClick={resetWizard}>
+                      Start over
+                    </button>
+                  </div>
                 </div>
               </header>
 
-              <div className="phiBanner">Do not include PHI (names, DOB, addresses, MRNs, identifiable details).</div>
+              <div className="pageShell">
+                <div className="phiBanner">Do not include PHI: names, birth dates, addresses, record numbers, or other identifying details.</div>
 
-              <ProgressBar
-                currentStep={state.currentStep}
-                completed={completion}
-                maxUnlocked={maxUnlocked}
-                onJump={(index) => setState((prev) => ({ ...prev, currentStep: index }))}
-              />
+                <ProgressBar
+                  currentStep={state.currentStep}
+                  completed={completion}
+                  maxUnlocked={maxUnlocked}
+                  onJump={(index) => setState((prev) => ({ ...prev, currentStep: index }))}
+                />
 
-              {renderStep()}
+                <Layout tips={<StepGuide step={current} />}>
+                  {renderStep()}
 
-              <footer className="navFooter">
-                <span>
-                  Step {state.currentStep} of 6
-                </span>
-                <div className="buttonRow">
-                  <button
-                    type="button"
-                    className="ghost"
-                    disabled={state.currentStep === 0}
-                    onClick={() => setState((prev) => ({ ...prev, currentStep: Math.max(0, prev.currentStep - 1) }))}
-                  >
-                    Back
-                  </button>
-                  <button
-                    type="button"
-                    disabled={state.currentStep >= 6 || !canProceed}
-                    onClick={() => setState((prev) => ({ ...prev, currentStep: Math.min(6, prev.currentStep + 1) }))}
-                  >
-                    {state.currentStep === 0 ? 'Start Step 1' : 'Next'}
-                  </button>
-                </div>
-              </footer>
-            </Layout>
+                  <footer className="navFooter">
+                    <div className="navStatus">
+                      <strong>
+                        Step {current} of 6 &middot; {stepLabels[current]}
+                      </strong>
+                      {missing.length ? (
+                        <ul className="navMissing" aria-label="Still needed to continue">
+                          {missing.map((m) => (
+                            <li key={m}>{m}</li>
+                          ))}
+                        </ul>
+                      ) : (
+                        <div className="navReady">{current === 6 ? 'Plan complete: ready to export' : 'Ready for the next step'}</div>
+                      )}
+                    </div>
+                    <div className="buttonRow">
+                      <button
+                        type="button"
+                        className="ghost"
+                        disabled={current === 0}
+                        onClick={() => setState((prev) => ({ ...prev, currentStep: Math.max(0, prev.currentStep - 1) }))}
+                      >
+                        Back
+                      </button>
+                      {current === 6 ? (
+                        <Link to="/export" className={`linkBtn ${canProceed ? 'primaryLink' : ''}`}>
+                          Preview &amp; export
+                        </Link>
+                      ) : (
+                        <button
+                          type="button"
+                          disabled={!canProceed}
+                          onClick={() => setState((prev) => ({ ...prev, currentStep: Math.min(6, prev.currentStep + 1) }))}
+                        >
+                          {current === 0 ? 'Start Step 1' : 'Next'}
+                        </button>
+                      )}
+                    </div>
+                  </footer>
+                </Layout>
+              </div>
+            </>
           }
         />
         <Route path="/export" element={<ExportView state={state} />} />

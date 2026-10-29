@@ -1,4 +1,5 @@
-import React from 'react';
+import React, { useEffect } from 'react';
+import { Link } from 'react-router-dom';
 import type { WizardData } from './types';
 import { buildCaseSnapshotText, getScoreTotal, goalToText, orderedArticles } from './utils';
 
@@ -7,6 +8,10 @@ interface ExportViewProps {
 }
 
 export const ExportView: React.FC<ExportViewProps> = ({ state }) => {
+  useEffect(() => {
+    window.scrollTo({ top: 0 });
+  }, []);
+
   const ordered = orderedArticles(state.step3.candidateArticles, state.step4.scores, true);
   const topIds = Object.values(state.step4.scores)
     .filter((s) => s.includeTop)
@@ -31,9 +36,14 @@ export const ExportView: React.FC<ExportViewProps> = ({ state }) => {
     <div className="exportPage">
       <header className="exportHeader noPrintBreak">
         <h1>EBP Packet</h1>
-        <button type="button" onClick={() => window.print()}>
-          Print / Save as PDF
-        </button>
+        <div className="buttonRow">
+          <Link to="/" className="linkBtn">
+            &larr; Back to wizard
+          </Link>
+          <button type="button" onClick={() => window.print()}>
+            Print / Save as PDF
+          </button>
+        </div>
       </header>
 
       <section className="exportSection">

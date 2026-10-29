@@ -91,3 +91,46 @@ export const getMaxUnlockedStep = (s: WizardData): number => {
   }
   return max;
 };
+
+// Plain-language list of what still blocks "Next" on a step, shown under the nav buttons.
+export const missingRequirements = (s: WizardData, step: number): string[] => {
+  const missing: string[] = [];
+  if (step === 0) {
+    if (!s.step0.noPhi) missing.push('Confirm you will not enter PHI');
+    if (!s.step0.verifySources) missing.push('Confirm you will verify sources');
+  } else if (step === 1) {
+    const cs = s.caseSnapshot;
+    if (!cs.setting) missing.push('Setting');
+    if (cs.age === '') missing.push('Age');
+    if (!cs.concerns.length) missing.push('At least one disorder/concern');
+    if (!hasText(cs.functionalProblem)) missing.push('Functional participation problem');
+    if (!cs.initialTarget) missing.push('Initial target area');
+    if (!cs.constraints.length) missing.push('At least one constraint');
+  } else if (step === 2) {
+    if (!hasText(s.step2.finalPico)) missing.push('A final PICO question');
+    else if (!s.step2.picoLocked) missing.push('Lock your PICO question');
+    if (s.step2.keywords.length < 10) missing.push(`${10 - s.step2.keywords.length} more keyword(s) (10 needed)`);
+  } else if (step === 3) {
+    const titled = s.step3.candidateArticles.filter((a) => hasText(a.title)).length;
+    if (titled < 2) missing.push(`${2 - titled} more candidate article title(s)`);
+  } else if (step === 4) {
+    const selected = Object.values(s.step4.scores).filter((v) => v.includeTop).length;
+    if (selected < 2) missing.push(`Select ${2 - selected} more top article(s)`);
+    if (selected > 5) missing.push('Select no more than 5 top articles');
+  } else if (step === 5 && !isStep5Complete(s)) {
+    missing.push('Complete all required fields for at least 2 top articles');
+  } else if (step === 6) {
+    const done = (g: { behavior: string; condition: string; criterion: string; timeframe: string }): boolean =>
+      hasText(g.behavior) && hasText(g.condition) && hasText(g.criterion) && hasText(g.timeframe);
+    const m = s.step6.methodology;
+    const p = s.step6.progressMonitoring;
+    const objectives = s.step6.shortTermObjectives.filter(done).length;
+    const rationale = s.step6.rationaleArticleIds.length;
+    if (!done(s.step6.longTermGoal)) missing.push('Long-term goal (all 4 parts)');
+    if (objectives < 2) missing.push(`${2 - objectives} more complete objective(s)`);
+    if (![m.sessionStructure, m.cueingHierarchy, m.feedbackTypeFrequency, m.materialsList].every(hasText)) missing.push('Methodology');
+    if (![p.probeSchedule, p.metric, p.masteryCriteria].every(hasText)) missing.push('Progress monitoring');
+    if (rationale < 2 || rationale > 3) missing.push('2\u20133 rationale sources');
+  }
+  return missing;
+};

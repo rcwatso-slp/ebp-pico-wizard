@@ -3,6 +3,13 @@ import { PhiField } from '../components/PhiField';
 import { goalToText } from '../utils';
 import type { StepProps } from '../common';
 
+const goalFields = [
+  ['behavior', 'Behavior: what the client will do', 'e.g., produce 2\u20133 syllable words accurately'],
+  ['condition', 'Condition: in what situation, with what support', 'e.g., in structured play, given one model'],
+  ['criterion', 'Criterion: how accurately or how often', 'e.g., 80% of opportunities across 3 sessions'],
+  ['timeframe', 'Timeframe: by when', 'e.g., within 12 weeks'],
+] as const;
+
 const sessionStructures = ['1:1 direct therapy', 'small group', 'hybrid direct + caregiver coaching', 'telepractice', 'other'];
 
 export const Step6Plan: React.FC<StepProps> = ({ state, setState, onPhiWarning }) => {
@@ -18,10 +25,11 @@ export const Step6Plan: React.FC<StepProps> = ({ state, setState, onPhiWarning }
       <article className="card">
         <h3>Long-term goal *</h3>
         <div className="formGrid two">
-          {(['behavior', 'condition', 'criterion', 'timeframe'] as const).map((key) => (
+          {goalFields.map(([key, label, hint]) => (
             <label key={key}>
-              {key}
+              {label}
               <input
+                placeholder={hint}
                 value={state.step6.longTermGoal[key]}
                 onChange={(e) =>
                   setState((prev) => ({
@@ -85,10 +93,11 @@ export const Step6Plan: React.FC<StepProps> = ({ state, setState, onPhiWarning }
               </button>
             </div>
             <div className="formGrid two">
-              {(['behavior', 'condition', 'criterion', 'timeframe'] as const).map((key) => (
+              {goalFields.map(([key, label, hint]) => (
                 <label key={key}>
-                  {key}
+                  {label}
                   <input
+                    placeholder={hint}
                     value={goal[key]}
                     onChange={(e) =>
                       setState((prev) => ({

@@ -6,6 +6,9 @@
   }
 
   button,
+  .linkBtn,
+  .appBar,
+  .stepper,
   .tipsDesktop,
   .tipsMobile,
   .phiBanner,
@@ -17,6 +20,7 @@
   }
 
   .exportSection {
+    box-shadow: none;
     page-break-inside: avoid;
     border: none;
     padding: 0;
