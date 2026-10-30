@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { PhiField } from '../components/PhiField';
-import { buildCaseSnapshotText } from '../utils';
+import { buildCaseSnapshotText, suggestedPopulation } from '../utils';
 import type { StepProps } from '../common';
 
 const joinKeywords = (value: string): string[] =>
@@ -12,6 +12,9 @@ const joinKeywords = (value: string): string[] =>
 export const Step2Pico: React.FC<StepProps> = ({ state, setState, onPhiWarning }) => {
   const [keywordInput, setKeywordInput] = useState('');
   const b = state.step2.builder;
+  const draftP = suggestedPopulation(state.caseSnapshot);
+  const draftO = state.caseSnapshot.treatmentTarget.trim();
+  const draftsApplied = b.p === draftP && b.o === draftO;
 
   const buildQuestion = (variant: number): string => {
     const comparator = b.c ? ` compared with ${b.c}` : '';
@@ -52,6 +55,41 @@ export const Step2Pico: React.FC<StepProps> = ({ state, setState, onPhiWarning }
   return (
     <section>
       <h2>Step 2: PICO Builder</h2>
+
+      {draftP || draftO ? (
+        <div className="card fromStep1">
+          <h3>From your case snapshot</h3>
+          <p className="muted tiny">Start from these drafts, then make them specific enough to search.</p>
+          {draftP ? (
+            <p className="picoDraft">
+              <span>P draft</span>
+              {draftP}
+            </p>
+          ) : null}
+          {draftO ? (
+            <p className="picoDraft">
+              <span>O draft</span>
+              {draftO}
+            </p>
+          ) : null}
+          <button
+            type="button"
+            className="ghost small"
+            disabled={draftsApplied}
+            onClick={() =>
+              setState((prev) => ({
+                ...prev,
+                step2: {
+                  ...prev.step2,
+                  builder: { ...prev.step2.builder, p: draftP || prev.step2.builder.p, o: draftO || prev.step2.builder.o },
+                },
+              }))
+            }
+          >
+            {draftsApplied ? 'Drafts in use \u2713' : 'Use these drafts for P and O'}
+          </button>
+        </div>
+      ) : null}
       <div className="formGrid two">
         <PhiField
           fieldId="step2_p"

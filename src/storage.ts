@@ -20,13 +20,16 @@ export const getDefaultState = (): WizardData => ({
   caseSnapshot: {
     setting: '',
     age: '',
+    primaryConcern: '',
     concerns: [],
     otherConcern: '',
+    severity: '',
     functionalProblem: '',
+    treatmentTarget: '',
     assessmentAnchors: [{ id: crypto.randomUUID(), measure: '', finding: '' }],
-    initialTarget: '',
     constraints: [],
     constraintNotes: '',
+    clientPriorities: '',
   },
   step2: {
     builder: {
@@ -95,6 +98,22 @@ export const saveState = (state: WizardData): void => {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
 };
 
+// Older saves had a list of concerns plus an "initial target" picked from it.
+// The target becomes the primary area; the rest become co-occurring areas.
+const migrateCaseSnapshot = (parsed: WizardData): void => {
+  const cs = parsed.caseSnapshot as WizardData['caseSnapshot'] & { initialTarget?: WizardData['caseSnapshot']['primaryConcern'] };
+  if (typeof cs.primaryConcern !== 'string') {
+    const primary = cs.initialTarget || cs.concerns[0] || '';
+    cs.primaryConcern = primary;
+    cs.concerns = cs.concerns.filter((c) => c !== primary);
+  }
+  delete cs.initialTarget;
+  if (typeof cs.otherConcern !== 'string') cs.otherConcern = '';
+  if (typeof cs.severity !== 'string') cs.severity = '';
+  if (typeof cs.treatmentTarget !== 'string') cs.treatmentTarget = '';
+  if (typeof cs.clientPriorities !== 'string') cs.clientPriorities = '';
+};
+
 export const loadState = (): WizardData => {
   const raw = localStorage.getItem(STORAGE_KEY);
   if (!raw) {
@@ -110,9 +129,7 @@ export const loadState = (): WizardData => {
     if (typeof parsed.step3.keywordsEdited !== 'boolean') {
       parsed.step3.keywordsEdited = false;
     }
-    if (typeof parsed.caseSnapshot.otherConcern !== 'string') {
-      parsed.caseSnapshot.otherConcern = '';
-    }
+    migrateCaseSnapshot(parsed);
     if (typeof parsed.step3.elicitPrompt !== 'string') {
       parsed.step3.elicitPrompt = '';
     }

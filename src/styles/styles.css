@@ -504,3 +504,26 @@ button.small, .linkBtn.small { padding: .3rem .65rem; font-size: .82rem; }
 
 .chipGroup { margin-bottom: .7rem; }
 .chipGroupLabel { font-size: .78rem; font-weight: 600; text-transform: uppercase; letter-spacing: .04em; color: var(--text-muted); margin: 0 0 .35rem; }
+
+/* ---------- Step 1 sections ---------- */
+
+.sectionHead { margin-bottom: .75rem; }
+.sectionTitleRow { display: flex; justify-content: space-between; align-items: center; gap: .5rem; flex-wrap: wrap; }
+.sectionTitleRow h3 { margin: 0; display: flex; align-items: center; gap: .5rem; }
+.sectionHead p { margin: .3rem 0 0; }
+.sectionNum { width: 1.6rem; height: 1.6rem; border-radius: 50%; background: var(--primary); color: #fff; display: grid; place-items: center; font-size: .85rem; flex: none; }
+.feedsTag { font-size: .75rem; font-weight: 600; color: #3a4a66; background: #eef1f6; border: 1px solid #d5dce8; border-radius: 999px; padding: .15rem .6rem; }
+.fieldHint { font-size: .85rem; font-weight: 400; color: var(--text-muted); }
+.picoDraft { display: flex; align-items: baseline; gap: .6rem; background: var(--primary-soft); border: 1px dashed var(--primary-line); border-radius: var(--radius-sm); padding: .55rem .75rem; margin: .25rem 0 0; font-weight: 500; }
+.picoDraft span { font-size: .72rem; font-weight: 700; text-transform: uppercase; letter-spacing: .05em; color: var(--primary); flex: none; }
+.coOccurring { border: 1px solid var(--border); border-radius: var(--radius-sm); padding: .6rem .8rem; margin-bottom: .9rem; background: var(--surface); }
+.coOccurring summary { cursor: pointer; font-weight: 500; font-size: .95rem; }
+.coOccurring[open] summary { margin-bottom: .5rem; }
+.anchorRow { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.4fr) auto; gap: 0 .75rem; align-items: end; }
+.anchorRow button { margin-bottom: .9rem; }
+@media (max-width: 640px) {
+  .anchorRow { grid-template-columns: 1fr; }
+  .anchorRow button { justify-self: start; }
+}
+.fromStep1 .picoDraft { margin-bottom: .45rem; }
+.fromStep1 h3 { margin-top: 0; }

@@ -4,16 +4,20 @@ const hasText = (v: string): boolean => v.trim().length > 0;
 
 export const isStep0Complete = (s: WizardData): boolean => s.step0.noPhi && s.step0.verifySources;
 
+const needsOtherText = (s: WizardData): boolean => {
+  const cs = s.caseSnapshot;
+  return (cs.primaryConcern === 'other' || cs.concerns.includes('other')) && !hasText(cs.otherConcern);
+};
+
 export const isStep1Complete = (s: WizardData): boolean => {
   const cs = s.caseSnapshot;
   return !!(
     cs.setting &&
     cs.age !== '' &&
-    cs.concerns.length > 0 &&
-    (!cs.concerns.includes('other') || hasText(cs.otherConcern)) &&
+    cs.primaryConcern &&
+    !needsOtherText(s) &&
     hasText(cs.functionalProblem) &&
-    cs.initialTarget &&
-    cs.constraints.length > 0
+    hasText(cs.treatmentTarget)
   );
 };
 
@@ -101,13 +105,12 @@ export const missingRequirements = (s: WizardData, step: number): string[] => {
     if (!s.step0.verifySources) missing.push('Confirm you will verify sources');
   } else if (step === 1) {
     const cs = s.caseSnapshot;
-    if (!cs.setting) missing.push('Setting');
     if (cs.age === '') missing.push('Age');
-    if (!cs.concerns.length) missing.push('At least one disorder/concern');
-    if (cs.concerns.includes('other') && !hasText(cs.otherConcern)) missing.push('Describe the "Other" area');
-    if (!hasText(cs.functionalProblem)) missing.push('Functional participation problem');
-    if (!cs.initialTarget) missing.push('Initial target area');
-    if (!cs.constraints.length) missing.push('At least one constraint');
+    if (!cs.setting) missing.push('Setting');
+    if (!cs.primaryConcern) missing.push('Primary disorder area');
+    if (needsOtherText(s)) missing.push('Describe the "Other" area');
+    if (!hasText(cs.functionalProblem)) missing.push('Functional problem');
+    if (!hasText(cs.treatmentTarget)) missing.push('Treatment target');
   } else if (step === 2) {
     if (!hasText(s.step2.finalPico)) missing.push('A final PICO question');
     else if (!s.step2.picoLocked) missing.push('Lock your PICO question');

@@ -63,7 +63,7 @@ const buildElicitPrompt = (state: WizardData): string => {
 
   return [
     'You are helping with an evidence-based search for an SLP student clinician.',
-    `Case context: ${state.caseSnapshot.setting || 'clinical setting'}; age group: ${ageGroupFromAge(state.caseSnapshot.age)}; concerns: ${state.caseSnapshot.concerns.map((c) => concernLabel(c, state.caseSnapshot.otherConcern)).join(', ') || 'not specified'}.`,
+    `Case context: ${state.caseSnapshot.setting || 'clinical setting'}; age group: ${ageGroupFromAge(state.caseSnapshot.age)}; primary area: ${state.caseSnapshot.primaryConcern ? concernLabel(state.caseSnapshot.primaryConcern, state.caseSnapshot.otherConcern) : 'not specified'}; treatment target: ${state.caseSnapshot.treatmentTarget || 'not specified'}.`,
     `Final PICO: ${state.step2.finalPico || '[missing final PICO]'}`,
     '',
     'Search queries to run:',
@@ -92,8 +92,8 @@ export const Step3SearchPlan: React.FC<StepProps> = ({ state, setState }) => {
     // Auto-derive keyword buckets from Case Snapshot + PICO so Step 3 starts pre-filled.
     // Setting, age group, and timeframe would widen an OR'd concept rather than focus it,
     // and Step 2 keywords are sorted by the student below.
-    // Only the initial target focuses the search; OR-ing every selected concern would widen it.
-    const target = state.caseSnapshot.initialTarget;
+    // Only the primary area focuses the search; OR-ing co-occurring areas would widen it.
+    const target = state.caseSnapshot.primaryConcern;
     const population = uniqueTerms([
       state.step2.builder.p,
       ...(target ? concernSearchTerms(target, state.caseSnapshot.otherConcern) : []),
@@ -117,7 +117,7 @@ export const Step3SearchPlan: React.FC<StepProps> = ({ state, setState }) => {
     }));
   }, [
     setState,
-    state.caseSnapshot.initialTarget,
+    state.caseSnapshot.primaryConcern,
     state.caseSnapshot.otherConcern,
     state.step2.builder.i,
     state.step2.builder.measurement,

@@ -50,16 +50,24 @@ export interface AssessmentAnchor {
   finding: string;
 }
 
+export type Severity = 'mild' | 'moderate' | 'severe' | 'profound' | 'not yet determined';
+
 export interface CaseSnapshot {
   setting: Setting | '';
   age: '' | number;
+  // The area this EBP question is about; drives the search population.
+  primaryConcern: Concern | '';
+  // Co-occurring areas (context only; never includes primaryConcern).
   concerns: Concern[];
   otherConcern: string;
+  severity: Severity | '';
   functionalProblem: string;
+  // The specific skill or behavior to change; becomes the PICO outcome.
+  treatmentTarget: string;
   assessmentAnchors: AssessmentAnchor[];
-  initialTarget: Concern | '';
   constraints: ConstraintKey[];
   constraintNotes: string;
+  clientPriorities: string;
 }
 
 export interface PicoBuilder {
