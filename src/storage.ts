@@ -58,13 +58,8 @@ export const getDefaultState = (): WizardData => ({
       outcomeFocused: '',
     },
     elicitPrompt: '',
-    candidateArticles: Array.from({ length: 2 }).map(() => ({
-      id: crypto.randomUUID(),
-      title: '',
-      year: '',
-      link: '',
-      notes: '',
-    })),
+    candidateArticles: [],
+    searchLog: [],
   },
   step4: {
     scores: {},
@@ -143,6 +138,9 @@ export const loadState = (): WizardData => {
     }
     migrateCaseSnapshot(parsed);
     migrateStep2(parsed);
+    if (!Array.isArray(parsed.step3.searchLog)) {
+      parsed.step3.searchLog = [];
+    }
     if (typeof parsed.step3.elicitPrompt !== 'string') {
       parsed.step3.elicitPrompt = '';
     }

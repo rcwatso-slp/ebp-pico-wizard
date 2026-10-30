@@ -1,275 +1,351 @@
 import React, { useState } from 'react';
+import { KeywordColumns } from '../components/KeywordColumns';
 import { LiteratureSearch } from '../components/LiteratureSearch';
 import { hitLink, type SearchHit, type SearchSource } from '../search';
-import { KeywordColumns } from '../components/KeywordColumns';
-import { withKeywordColumns } from '../searchTerms';
-import { ageGroupFromAge, concernLabel } from '../utils';
+import { buildElicitPrompt, conceptKeys } from '../searchTerms';
 import type { StepProps } from '../common';
-import type { CandidateArticle, WizardData } from '../types';
+import type { CandidateArticle, SearchLogEntry, WizardData } from '../types';
 
-const copyText = async (value: string): Promise<void> => {
+const copyText = async (value: string): Promise<boolean> => {
   try {
     await navigator.clipboard.writeText(value);
+    return true;
   } catch {
-    // noop
+    return false;
   }
 };
 
-const buildElicitPrompt = (state: WizardData): string => {
-  const { queries, keywordColumns } = state.step3;
-  const population = keywordColumns.population.join(', ') || 'none';
-  const intervention = keywordColumns.intervention.join(', ') || 'none';
-  const outcome = keywordColumns.outcome.join(', ') || 'none';
+interface TrustedSource {
+  name: string;
+  url: string;
+  what: string;
+}
 
-  return [
-    'You are helping with an evidence-based search for an SLP student clinician.',
-    `Case context: ${state.caseSnapshot.setting || 'clinical setting'}; age group: ${ageGroupFromAge(state.caseSnapshot.age)}; primary area: ${state.caseSnapshot.primaryConcern ? concernLabel(state.caseSnapshot.primaryConcern, state.caseSnapshot.otherConcern) : 'not specified'}; treatment target: ${state.caseSnapshot.treatmentTarget || 'not specified'}.`,
-    `Final PICO: ${state.step2.finalPico || '[missing final PICO]'}`,
-    '',
-    'Search queries to run:',
-    `1) Full PICO sentence: ${queries.fullPico}`,
-    `2) Keyword-only (P+I+O): ${queries.keywordOnly}`,
-    `3) Intervention-focused: ${queries.interventionFocused}`,
-    `4) Outcome-focused: ${queries.outcomeFocused}`,
-    '',
-    `Keyword banks -> Population: ${population}; Intervention: ${intervention}; Outcome: ${outcome}.`,
-    '',
-    'Task:',
-    '- Return the best matching peer-reviewed studies (or high-quality foundational papers if limited).',
-    '- Prioritize direct relevance to population, intervention, and outcomes.',
-    '- Include citation, year, link/DOI, study design, and a 1-2 sentence relevance note for each result.',
-    '- Return at least 8 candidate articles and rank them from strongest to weakest match.',
-  ].join('\n');
-};
+// Sources students should know beyond database searches; synthesized evidence first.
+const trustedSources: TrustedSource[] = [
+  {
+    name: 'ASHA Evidence Maps',
+    url: 'https://www.asha.org/evidence-maps/',
+    what: 'Systematic reviews, guidelines, and client perspectives organized by disorder area. A good first stop.',
+  },
+  {
+    name: 'ASHA Practice Portal',
+    url: 'https://www.asha.org/practice-portal/',
+    what: 'Overviews of assessment and treatment for each disorder area, with key references.',
+  },
+  {
+    name: 'The Informed SLP',
+    url: 'https://www.theinformedslp.com/',
+    what: 'Plain-language reviews of recent SLP research. Ask your supervisor about access.',
+  },
+  {
+    name: 'speechBITE',
+    url: 'https://speechbite.com/',
+    what: 'A database of speech pathology treatment studies, with a quality rating for each study.',
+  },
+  {
+    name: 'Cochrane Library',
+    url: 'https://www.cochranelibrary.com/',
+    what: 'High-quality systematic reviews of health interventions.',
+  },
+];
+
+const emptyManual = { title: '', year: '', link: '', source: '', notes: '' };
 
 export const Step3SearchPlan: React.FC<StepProps> = ({ state, setState }) => {
   const [copied, setCopied] = useState('');
+  const [manual, setManual] = useState(emptyManual);
+  const [showManual, setShowManual] = useState(false);
+  const { candidateArticles: articles, searchLog, keywordColumns } = state.step3;
 
-  const addFromSearch = (hit: SearchHit, source: SearchSource): void => {
-    const article = {
+  const flashCopied = (key: string): void => {
+    setCopied(key);
+    window.setTimeout(() => setCopied(''), 1500);
+  };
+
+  const setArticles = (update: (articles: CandidateArticle[]) => CandidateArticle[]): void =>
+    setState((prev: WizardData) => ({ ...prev, step3: { ...prev.step3, candidateArticles: update(prev.step3.candidateArticles) } }));
+
+  const updateArticle = (id: string, patch: Partial<CandidateArticle>): void =>
+    setArticles((list) => list.map((a) => (a.id === id ? { ...a, ...patch } : a)));
+
+  const logSearch = (entry: Omit<SearchLogEntry, 'id' | 'date'>): string => {
+    const id = crypto.randomUUID();
+    setState((prev: WizardData) => ({
+      ...prev,
+      step3: { ...prev.step3, searchLog: [...prev.step3.searchLog, { ...entry, id, date: new Date().toISOString() }] },
+    }));
+    return id;
+  };
+
+  const addFromSearch = (hit: SearchHit, source: SearchSource, searchId: string): void => {
+    const article: Omit<CandidateArticle, 'id'> = {
       title: hit.title,
       year: hit.year,
       link: hitLink(hit),
-      notes: `Found via ${source === 'pubmed' ? 'PubMed' : 'Europe PMC'}${hit.studyTypes.length ? ` (${hit.studyTypes.join(', ')})` : ''}`,
+      notes: '',
+      authors: hit.authors,
+      journal: hit.journal,
+      studyTypes: hit.studyTypes,
+      source: source === 'pubmed' ? 'PubMed' : 'Europe PMC',
+      searchId,
     };
-    setState((prev: WizardData) => {
-      const blank = prev.step3.candidateArticles.find((a) => !a.title.trim() && !a.link.trim());
-      const candidateArticles = blank
-        ? prev.step3.candidateArticles.map((a) => (a.id === blank.id ? { ...a, ...article } : a))
-        : [...prev.step3.candidateArticles, { id: crypto.randomUUID(), ...article }];
-      return { ...prev, step3: { ...prev.step3, candidateArticles } };
+    // Older saves start with blank rows; fill one of those before adding a new row.
+    setArticles((list) => {
+      const blank = list.find((a) => !a.title.trim() && !a.link.trim());
+      return blank ? list.map((a) => (a.id === blank.id ? { ...a, ...article } : a)) : [...list, { id: crypto.randomUUID(), ...article }];
     });
   };
 
-  const resetQueries = (): void => setState((prev: WizardData) => withKeywordColumns(prev, prev.step3.keywordColumns));
+  const addManual = (): void => {
+    if (!manual.title.trim()) return;
+    setArticles((list) => [...list, { id: crypto.randomUUID(), ...manual, title: manual.title.trim() }]);
+    setManual(emptyManual);
+    setShowManual(false);
+  };
+
+  const removeArticle = (id: string): void => setArticles((list) => list.filter((row) => row.id !== id));
+
+  const saved = articles.filter((a) => a.title.trim());
+  const scholarQuery = state.step3.queries.keywordOnly || conceptKeys.map((k) => keywordColumns[k][0]).filter(Boolean).join(' ');
 
   return (
     <section>
-      <h2>Step 3: Search Plan</h2>
-      <p className="muted">Your search terms from Step 2 become Boolean searches. Run them here, then save the articles worth screening.</p>
+      <h2>Step 3: Search for Evidence</h2>
+      <p className="muted">
+        Run your searches, check trusted SLP sources, and save every article that might answer your PICO question. You&rsquo;ll score them in
+        Step 4.
+      </p>
+
+      <p className="preview">
+        <strong>Your question:</strong> {state.step2.finalPico || 'Write your PICO question in Step 2.'}
+      </p>
+
+      <details className="card termsCard">
+        <summary>
+          <strong>Your search terms</strong>
+          <span className="muted tiny">
+            {conceptKeys.map((k) => `${k[0].toUpperCase()}: ${keywordColumns[k].length}`).join(' · ')} &middot; open to edit
+          </span>
+        </summary>
+        <p className="fieldHint">
+          Terms in the same concept are joined with OR, and concepts are joined with AND. These are the same terms as Step 2; changing them
+          updates your searches.
+        </p>
+        <KeywordColumns state={state} setState={setState} />
+      </details>
+
+      <LiteratureSearch queries={state.step3.queries} articles={articles} onAdd={addFromSearch} onLog={logSearch} />
+
+      {searchLog.length ? (
+        <div className="card">
+          <h3>Search log</h3>
+          <p className="fieldHint">Every search you ran here, so you or your supervisor can repeat it. It is included in your exported packet.</p>
+          <div className="tableWrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Date</th>
+                  <th>Database</th>
+                  <th>Strategy</th>
+                  <th>Search</th>
+                  <th>Results</th>
+                  <th>Saved</th>
+                </tr>
+              </thead>
+              <tbody>
+                {searchLog.map((entry) => (
+                  <tr key={entry.id}>
+                    <td>{new Date(entry.date).toLocaleDateString()}</td>
+                    <td>{entry.source}</td>
+                    <td>{entry.strategy}</td>
+                    <td className="queryCell">{entry.query}</td>
+                    <td>{entry.total.toLocaleString()}</td>
+                    <td>{articles.filter((a) => a.searchId === entry.id).length}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      ) : null}
 
       <div className="card">
-        <h3>Your search terms</h3>
-        <p className="fieldHint">Terms in the same concept are joined with OR; concepts are joined with AND. Changing a term rebuilds the searches below.</p>
-        <KeywordColumns state={state} setState={setState} />
-      </div>
+        <h3>Other trusted sources</h3>
+        <p className="fieldHint">
+          Database searches miss things. Check sources that summarize SLP evidence, especially for guidelines and systematic reviews, then add
+          what you find with &ldquo;Add an article you found elsewhere&rdquo; below.
+        </p>
+        <ul className="sourceList">
+          {trustedSources.map((src) => (
+            <li key={src.name}>
+              <a href={src.url} target="_blank" rel="noopener noreferrer">
+                {src.name}
+              </a>
+              <span className="muted tiny">{src.what}</span>
+            </li>
+          ))}
+          <li>
+            <a href={`https://scholar.google.com/scholar?q=${encodeURIComponent(scholarQuery)}`} target="_blank" rel="noopener noreferrer">
+              Google Scholar
+            </a>
+            <span className="muted tiny">Opens with your P + I + O search. Very broad, so check that each source is peer-reviewed.</span>
+          </li>
+        </ul>
 
-      <div className="buttonRow">
-        <h3>Searches built from your terms</h3>
-        <button type="button" className="ghost small" onClick={resetQueries}>
-          Undo my edits to the searches
-        </button>
-      </div>
-
-      <div className="queryGrid">
-        {([
-          ['fullPico', '1) Full PICO sentence'],
-          ['keywordOnly', '2) Keyword only (P + I + O)'],
-          ['interventionFocused', '3) Intervention-focused'],
-          ['outcomeFocused', '4) Outcome-focused'],
-        ] as const).map(([key, label]) => (
-          <div className="card" key={key}>
-            <label>
-              {label}
-              <textarea
-                value={state.step3.queries[key]}
-                onChange={(e) =>
-                  setState((prev: WizardData) => ({
-                    ...prev,
-                    step3: {
-                      ...prev.step3,
-                      keywordsEdited: true,
-                      queries: { ...prev.step3.queries, [key]: e.target.value },
-                    },
-                  }))
-                }
-              />
-            </label>
+        <details className="elicitBox">
+          <summary>
+            <strong>Elicit and other AI research assistants</strong>
+            <span className="muted tiny">AI tools that find and summarize papers. Always open the paper to confirm what it says.</span>
+          </summary>
+          <div className="buttonRow">
             <button
               type="button"
-              className="ghost"
-              onClick={async () => {
-                await copyText(state.step3.queries[key]);
-                setCopied(key);
-                window.setTimeout(() => setCopied(''), 1200);
-              }}
+              className="ghost small"
+              disabled={!state.step2.finalPico.trim()}
+              onClick={async () => (await copyText(state.step2.finalPico)) && flashCopied('pico')}
             >
-              {copied === key ? 'Copied ✓' : 'Copy'}
+              {copied === 'pico' ? 'Copied ✓' : 'Copy my PICO question'}
             </button>
+            <button
+              type="button"
+              className="ghost small"
+              onClick={async () => (await copyText(buildElicitPrompt(state))) && flashCopied('prompt')}
+            >
+              {copied === 'prompt' ? 'Copied ✓' : 'Copy detailed prompt'}
+            </button>
+            <a className="linkBtn small" href="https://elicit.com" target="_blank" rel="noopener noreferrer">
+              Open Elicit
+            </a>
           </div>
-        ))}
+          <p className="muted tiny">
+            Elicit works best with your PICO question in plain language. The detailed prompt adds your terms and searches, for AI tools that
+            accept longer instructions.
+          </p>
+        </details>
       </div>
-
-      <LiteratureSearch queries={state.step3.queries} articles={state.step3.candidateArticles} onAdd={addFromSearch} />
 
       <div className="card">
         <div className="buttonRow">
-          <h3>Optional: search with Elicit</h3>
-          <button
-            type="button"
-            onClick={() =>
-              setState((prev: WizardData) => ({
-                ...prev,
-                step3: {
-                  ...prev.step3,
-                  elicitPrompt: buildElicitPrompt(prev),
-                },
-              }))
-            }
-          >
-            Generate full Elicit prompt
-          </button>
+          <h3>Saved articles</h3>
+          <span className={`pill ${saved.length < 2 ? 'warn' : ''}`}>{saved.length} saved (at least 2)</span>
         </div>
-        <label>
-          Copy/paste prompt for Elicit
-          <textarea value={state.step3.elicitPrompt} readOnly />
-        </label>
-        <button
-          type="button"
-          className="ghost"
-          disabled={!state.step3.elicitPrompt.trim()}
-          onClick={async () => {
-            await copyText(state.step3.elicitPrompt);
-            setCopied('elicitPrompt');
-            window.setTimeout(() => setCopied(''), 1200);
-          }}
-        >
-          {copied === 'elicitPrompt' ? 'Copied ✓' : 'Copy full prompt'}
-        </button>{' '}
-        <a className="linkBtn" href="https://elicit.com" target="_blank" rel="noopener noreferrer">
-          Open Elicit
-        </a>
-      </div>
+        <p className="fieldHint">Aim for 5&ndash;10 articles to screen in Step 4. Save anything that might fit; you&rsquo;ll score them next.</p>
 
-      <h3>Candidate articles (at least 2 titles)</h3>
-      {state.step3.candidateArticles.map((a, idx) => (
-        <article className="card" key={a.id}>
-          <div className="buttonRow">
-            <h4>Article {idx + 1}</h4>
-            <button
-              type="button"
-              className="ghost"
-              disabled={state.step3.candidateArticles.length <= 2}
-              onClick={() =>
-                setState((prev: WizardData) => ({
-                  ...prev,
-                  step3: {
-                    ...prev.step3,
-                    candidateArticles: prev.step3.candidateArticles.filter((row: CandidateArticle) => row.id !== a.id),
-                  },
-                }))
-              }
-            >
-              Remove Article
-            </button>
+        {articles.length ? (
+          <ol className="savedList">
+            {articles.map((a) => (
+              <li key={a.id} className="savedArticle">
+                {a.searchId ? (
+                  <>
+                    <div className="savedHead">
+                      {a.link ? (
+                        <a href={a.link} target="_blank" rel="noopener noreferrer" className="hitTitle">
+                          {a.title}
+                        </a>
+                      ) : (
+                        <strong>{a.title}</strong>
+                      )}
+                      <button type="button" className="ghost small" onClick={() => removeArticle(a.id)}>
+                        Remove
+                      </button>
+                    </div>
+                    <div className="hitMeta">{[a.authors, a.journal, a.year].filter(Boolean).join(' · ')}</div>
+                    <div className="hitTags">
+                      {(a.studyTypes ?? []).map((t) => (
+                        <span key={t} className="tag">
+                          {t}
+                        </span>
+                      ))}
+                      {a.source ? <span className="tag source">Found in {a.source}</span> : null}
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    <div className="savedHead">
+                      <label className="grow">
+                        Title *
+                        <input value={a.title} onChange={(e) => updateArticle(a.id, { title: e.target.value })} />
+                      </label>
+                      <button type="button" className="ghost small" onClick={() => removeArticle(a.id)}>
+                        Remove
+                      </button>
+                    </div>
+                    <div className="formGrid three">
+                      <label>
+                        Year
+                        <input value={a.year} onChange={(e) => updateArticle(a.id, { year: e.target.value })} />
+                      </label>
+                      <label>
+                        Link or DOI
+                        <input value={a.link} onChange={(e) => updateArticle(a.id, { link: e.target.value })} />
+                      </label>
+                      <label>
+                        Where you found it
+                        <input
+                          value={a.source ?? ''}
+                          placeholder="e.g., ASHA Evidence Map"
+                          onChange={(e) => updateArticle(a.id, { source: e.target.value })}
+                        />
+                      </label>
+                    </div>
+                  </>
+                )}
+                <label className="noteField">
+                  Why it might be relevant
+                  <input
+                    value={a.notes}
+                    placeholder="e.g., Same intervention and outcome; participants slightly younger"
+                    onChange={(e) => updateArticle(a.id, { notes: e.target.value })}
+                  />
+                </label>
+              </li>
+            ))}
+          </ol>
+        ) : (
+          <p className="muted tiny">Nothing saved yet. Use &ldquo;Save for screening&rdquo; on a search result, or add an article below.</p>
+        )}
+
+        {showManual ? (
+          <div className="manualForm">
+            <h4>Add an article you found elsewhere</h4>
+            <label>
+              Title *
+              <input value={manual.title} onChange={(e) => setManual((m) => ({ ...m, title: e.target.value }))} />
+            </label>
+            <div className="formGrid three">
+              <label>
+                Year
+                <input value={manual.year} onChange={(e) => setManual((m) => ({ ...m, year: e.target.value }))} />
+              </label>
+              <label>
+                Link or DOI
+                <input value={manual.link} onChange={(e) => setManual((m) => ({ ...m, link: e.target.value }))} />
+              </label>
+              <label>
+                Where you found it
+                <input
+                  value={manual.source}
+                  placeholder="e.g., ASHA Evidence Map"
+                  onChange={(e) => setManual((m) => ({ ...m, source: e.target.value }))}
+                />
+              </label>
+            </div>
+            <div className="buttonRow">
+              <button type="button" className="small" disabled={!manual.title.trim()} onClick={addManual}>
+                Add article
+              </button>
+              <button type="button" className="ghost small" onClick={() => setShowManual(false)}>
+                Cancel
+              </button>
+            </div>
           </div>
-          <label>
-            Title *
-            <input
-              value={a.title}
-              onChange={(e) =>
-                setState((prev: WizardData) => ({
-                  ...prev,
-                  step3: {
-                    ...prev.step3,
-                    candidateArticles: prev.step3.candidateArticles.map((row: CandidateArticle) =>
-                      row.id === a.id ? { ...row, title: e.target.value } : row,
-                    ),
-                  },
-                }))
-              }
-            />
-          </label>
-          <div className="formGrid three">
-            <label>
-              Year
-              <input
-                value={a.year}
-                onChange={(e) =>
-                  setState((prev: WizardData) => ({
-                    ...prev,
-                    step3: {
-                      ...prev.step3,
-                      candidateArticles: prev.step3.candidateArticles.map((row: CandidateArticle) =>
-                        row.id === a.id ? { ...row, year: e.target.value } : row,
-                      ),
-                    },
-                  }))
-                }
-              />
-            </label>
-            <label>
-              Link/DOI
-              <input
-                value={a.link}
-                onChange={(e) =>
-                  setState((prev: WizardData) => ({
-                    ...prev,
-                    step3: {
-                      ...prev.step3,
-                      candidateArticles: prev.step3.candidateArticles.map((row: CandidateArticle) =>
-                        row.id === a.id ? { ...row, link: e.target.value } : row,
-                      ),
-                    },
-                  }))
-                }
-              />
-            </label>
-            <label>
-              Notes
-              <input
-                value={a.notes}
-                onChange={(e) =>
-                  setState((prev: WizardData) => ({
-                    ...prev,
-                    step3: {
-                      ...prev.step3,
-                      candidateArticles: prev.step3.candidateArticles.map((row: CandidateArticle) =>
-                        row.id === a.id ? { ...row, notes: e.target.value } : row,
-                      ),
-                    },
-                  }))
-                }
-              />
-            </label>
-          </div>
-        </article>
-      ))}
-      <button
-        type="button"
-        className="ghost"
-        onClick={() =>
-          setState((prev: WizardData) => ({
-            ...prev,
-            step3: {
-              ...prev.step3,
-              candidateArticles: [...prev.step3.candidateArticles, { id: crypto.randomUUID(), title: '', year: '', link: '', notes: '' }],
-            },
-          }))
-        }
-      >
-        Add Article
-      </button>
+        ) : (
+          <button type="button" className="ghost small" onClick={() => setShowManual(true)}>
+            Add an article you found elsewhere
+          </button>
+        )}
+      </div>
     </section>
   );
 };

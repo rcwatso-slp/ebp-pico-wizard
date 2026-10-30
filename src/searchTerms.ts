@@ -2,7 +2,7 @@
 // Step 2 collects the terms; Step 3 searches with the queries.
 
 import type { SearchKeywords, WizardData } from './types';
-import { concernSearchTerms } from './utils';
+import { buildCaseSnapshotText, concernSearchTerms } from './utils';
 
 export const conceptKeys = ['population', 'intervention', 'outcome'] as const;
 export type ConceptKey = (typeof conceptKeys)[number];
@@ -85,3 +85,26 @@ export const splitTerms = (value: string): string[] =>
     .split(/[,;\n]/)
     .map((v) => v.trim().replace(/^[-*•]\s*/, ''))
     .filter(Boolean);
+
+// Prompt for AI research assistants such as Elicit. Built live so it always matches the current terms.
+export const buildElicitPrompt = (state: WizardData): string => {
+  const { queries, keywordColumns } = state.step3;
+  return [
+    'I am a graduate student clinician in speech-language pathology looking for research evidence for a clinical question.',
+    '',
+    `Case (de-identified): ${buildCaseSnapshotText(state)}`,
+    `PICO question: ${state.step2.finalPico || '[missing PICO question]'}`,
+    '',
+    'Search terms by concept:',
+    `- Population: ${keywordColumns.population.join(', ') || 'none'}`,
+    `- Intervention: ${keywordColumns.intervention.join(', ') || 'none'}`,
+    `- Outcome: ${keywordColumns.outcome.join(', ') || 'none'}`,
+    '',
+    'Boolean searches I am using:',
+    `- P + I + O: ${queries.keywordOnly}`,
+    `- P + I: ${queries.interventionFocused}`,
+    `- P + O: ${queries.outcomeFocused}`,
+    '',
+    'Please find peer-reviewed studies that best answer my PICO question. For each, give the citation, year, DOI or link, study design, and one or two sentences on how closely it matches my population, intervention, and outcome. Rank them from strongest to weakest match. Only include studies you can link to; do not invent citations.',
+  ].join('\n');
+};

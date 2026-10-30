@@ -1,5 +1,6 @@
 import React, { useEffect } from 'react';
 import { Link } from 'react-router-dom';
+import { buildElicitPrompt } from './searchTerms';
 import type { WizardData } from './types';
 import { buildCaseSnapshotText, getScoreTotal, goalToText, orderedArticles } from './utils';
 
@@ -16,21 +17,7 @@ export const ExportView: React.FC<ExportViewProps> = ({ state }) => {
   const topIds = Object.values(state.step4.scores)
     .filter((s) => s.includeTop)
     .map((s) => s.articleId);
-  const fullElicitPrompt =
-    state.step3.elicitPrompt.trim() ||
-    [
-      'You are helping with an evidence-based search for an SLP student clinician.',
-      `Case snapshot: ${buildCaseSnapshotText(state)}`,
-      `Final PICO: ${state.step2.finalPico || '[missing final PICO]'}`,
-      '',
-      'Search queries to run:',
-      `1) Full PICO sentence: ${state.step3.queries.fullPico}`,
-      `2) Keyword-only (P+I+O): ${state.step3.queries.keywordOnly}`,
-      `3) Intervention-focused: ${state.step3.queries.interventionFocused}`,
-      `4) Outcome-focused: ${state.step3.queries.outcomeFocused}`,
-      '',
-      'Task: return and rank relevant peer-reviewed or foundational studies with citation, year, link/DOI, design, and brief relevance note.',
-    ].join('\n');
+  const fullElicitPrompt = buildElicitPrompt(state);
 
   return (
     <div className="exportPage">
@@ -62,15 +49,44 @@ export const ExportView: React.FC<ExportViewProps> = ({ state }) => {
         <p><strong>Intervention:</strong> {state.step3.keywordColumns.intervention.join(', ')}</p>
         <p><strong>Outcome:</strong> {state.step3.keywordColumns.outcome.join(', ')}</p>
         <ul>
-          <li><strong>Full PICO:</strong> {state.step3.queries.fullPico}</li>
-          <li><strong>Keyword only:</strong> {state.step3.queries.keywordOnly}</li>
-          <li><strong>Intervention-focused:</strong> {state.step3.queries.interventionFocused}</li>
-          <li><strong>Outcome-focused:</strong> {state.step3.queries.outcomeFocused}</li>
+          <li><strong>P + I + O:</strong> {state.step3.queries.keywordOnly}</li>
+          <li><strong>P + I:</strong> {state.step3.queries.interventionFocused}</li>
+          <li><strong>P + O:</strong> {state.step3.queries.outcomeFocused}</li>
         </ul>
       </section>
 
+      {state.step3.searchLog.length ? (
+        <section className="exportSection">
+          <h2>Search Log</h2>
+          <table>
+            <thead>
+              <tr>
+                <th>Date</th>
+                <th>Database</th>
+                <th>Strategy</th>
+                <th>Search</th>
+                <th>Results</th>
+                <th>Saved</th>
+              </tr>
+            </thead>
+            <tbody>
+              {state.step3.searchLog.map((entry) => (
+                <tr key={entry.id}>
+                  <td>{new Date(entry.date).toLocaleDateString()}</td>
+                  <td>{entry.source}</td>
+                  <td>{entry.strategy}</td>
+                  <td>{entry.query}</td>
+                  <td>{entry.total.toLocaleString()}</td>
+                  <td>{state.step3.candidateArticles.filter((a) => a.searchId === entry.id).length}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </section>
+      ) : null}
+
       <section className="exportSection">
-        <h2>Full Elicit Prompt</h2>
+        <h2>AI Research Assistant Prompt (Elicit)</h2>
         <pre style={{ whiteSpace: 'pre-wrap', margin: 0 }}>{fullElicitPrompt}</pre>
       </section>
 

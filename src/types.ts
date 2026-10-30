@@ -104,7 +104,24 @@ export interface CandidateArticle {
   title: string;
   year: string;
   link: string;
+  // Why it might be relevant.
   notes: string;
+  // Filled in when saved from the built-in search.
+  authors?: string;
+  journal?: string;
+  studyTypes?: string[];
+  // Where it was found: "PubMed", "Europe PMC", or what the student typed.
+  source?: string;
+  searchId?: string;
+}
+
+export interface SearchLogEntry {
+  id: string;
+  date: string;
+  source: string;
+  strategy: string;
+  query: string;
+  total: number;
 }
 
 export interface Step3State {
@@ -119,6 +136,8 @@ export interface Step3State {
   };
   elicitPrompt: string;
   candidateArticles: CandidateArticle[];
+  // Every search run in the app, so the search can be reproduced and reported.
+  searchLog: SearchLogEntry[];
 }
 
 export interface ArticleScore {

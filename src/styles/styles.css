@@ -553,3 +553,31 @@ label.spaced { margin-top: .9rem; }
 .sortBox { background: var(--warn-soft); border: 1px solid var(--warn-line); border-radius: var(--radius-sm); padding: .65rem .75rem; margin-top: .75rem; }
 .formGrid.three.conceptColumns { grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: .75rem; }
 .conceptHead .pill { white-space: nowrap; padding: .1rem .5rem; font-size: .78rem; }
+
+/* ---------- Step 3 ---------- */
+
+.termsCard summary, .elicitBox summary { cursor: pointer; display: flex; flex-direction: column; gap: .15rem; }
+.termsCard[open] summary { margin-bottom: .5rem; }
+.strategyList { display: grid; gap: .45rem; }
+.strategyCard { flex-direction: row; align-items: center; gap: .7rem; margin: 0; padding: .55rem .75rem; border: 1px solid var(--border-strong); border-radius: var(--radius-sm); background: var(--surface); cursor: pointer; font-weight: 400; }
+.strategyCard:hover { border-color: var(--primary); }
+.strategyCard.checked { border-color: var(--primary); background: var(--primary-soft); }
+.strategyCard > span:last-child { display: flex; flex-direction: column; }
+.strategyLabel { flex: none; min-width: 4.6rem; text-align: center; font-weight: 700; font-size: .82rem; color: var(--primary); background: var(--surface); border: 1px solid var(--primary-line); border-radius: 6px; padding: .15rem .4rem; }
+.searchOptions { display: flex; justify-content: space-between; align-items: center; gap: .5rem; flex-wrap: wrap; margin: -.25rem 0 .75rem; font-size: .9rem; }
+.searchOptions .checkRow { margin: 0; font-weight: 400; }
+.queryCell { font-family: ui-monospace, "SF Mono", Menlo, monospace; font-size: .78rem; max-width: 22rem; word-break: break-word; }
+.sourceList { list-style: none; margin: 0 0 .75rem; padding: 0; display: grid; gap: .55rem; }
+.sourceList li { display: flex; flex-direction: column; }
+.sourceList a { font-weight: 600; color: var(--primary); }
+.elicitBox { border-top: 1px solid var(--border); padding-top: .7rem; }
+.elicitBox[open] summary { margin-bottom: .5rem; }
+.savedList { list-style: none; margin: .5rem 0 .75rem; padding: 0; display: grid; gap: .6rem; }
+.savedArticle { border: 1px solid var(--border); border-radius: var(--radius-sm); padding: .7rem .85rem; background: var(--surface); }
+.savedHead { display: flex; justify-content: space-between; align-items: flex-start; gap: .75rem; }
+.savedHead .grow { flex: 1; margin-bottom: .4rem; }
+.savedHead .grow + button { margin-top: 1.6rem; }
+.tag.source { background: var(--surface-muted); color: var(--text-muted); border-color: var(--border); }
+.noteField { margin: .55rem 0 0; font-size: .88rem; }
+.manualForm { border: 1px dashed var(--border-strong); border-radius: var(--radius-sm); padding: .8rem; background: var(--surface); }
+.manualForm h4 { margin-top: 0; }

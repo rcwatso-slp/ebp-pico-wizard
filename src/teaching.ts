@@ -136,35 +136,42 @@ export const stepGuides: StepGuideContent[] = [
     ],
   },
   {
-    title: 'Planning your search',
+    title: 'Searching for evidence',
     why:
-      'A planned search is reproducible and less likely to miss key studies. Grouping keywords by concept lets you build Boolean queries, and recording what you searched lets you (and your supervisor) see how you found your evidence.',
+      'A planned, recorded search finds the studies that actually match your question and lets someone else repeat it. Starting focused and widening on purpose teaches you how much evidence exists, and where the gaps are.',
     steps: [
-      'Review your search terms from Step 2; add or remove terms as you learn what works.',
-      'The searches join terms in the same concept with OR, and concepts with AND.',
-      'Search PubMed or Europe PMC right here, and read the abstract before adding an article.',
-      'Use the study design tags (systematic review, randomized controlled trial) to spot stronger evidence early.',
-      'Optionally run the Elicit prompt, and check ASHA Evidence Maps or speechBITE.',
-      'Record at least 2 candidate articles with title, year, and link.',
+      'Start with P + I + O, the most focused search.',
+      'Too few results? Drop the outcome (P + I). Want to see what else works for this outcome? Try P + O.',
+      'Too many results? Turn on the design filter for systematic reviews and randomized controlled trials.',
+      'Read the abstract, then save anything that might fit. Aim for 5\u201310 articles.',
+      'Check trusted sources such as ASHA Evidence Maps and The Informed SLP for reviews and guidelines.',
+      'Note why each saved article might be relevant. Your search log records the rest.',
     ],
     examples: [
       {
         label: 'Boolean query',
         weak: 'apraxia therapy children',
         strong:
-          '("childhood apraxia of speech" OR CAS OR "developmental apraxia of speech") AND ("integral stimulation" OR "dynamic temporal and tactile cueing" OR DTTC)',
+          '("childhood apraxia of speech" OR CAS) AND ("integral stimulation" OR "dynamic temporal and tactile cueing" OR DTTC)',
         why: 'OR widens each concept to include synonyms; AND requires every concept to appear. Quotation marks keep phrases together.',
+      },
+      {
+        label: 'Relevance note',
+        weak: 'Looks good.',
+        strong: 'Same intervention and outcome; participants were preschoolers, younger than my client.',
+        why: 'Noting what matches and what doesn\u2019t prepares you to score the article in Step 4.',
       },
     ],
     pitfalls: [
-      'Too many results: add a concept with AND, or use more specific terms.',
-      'Too few results: drop the comparison, broaden the outcome, or add synonyms with OR.',
-      'Listing an article from an AI summary without confirming it exists and says what the summary claims.',
-      'Using only one database.',
+      'Stopping at the first search. If you only ran one search, you may have missed the best evidence.',
+      'Saving articles from the title alone without reading the abstract.',
+      'Listing an article from an AI tool without opening it to confirm it exists and says what the tool claims.',
+      'Ignoring synthesized evidence. A good systematic review or guideline can be worth more than several single studies.',
     ],
     selfCheck: [
-      'Did I open each article and confirm the title, year, and authors?',
-      'Could a classmate rerun my search from what I recorded?',
+      'Did I try more than one search strategy or database?',
+      'Could a classmate repeat my searches from my search log?',
+      'Did I open each saved article and confirm the title, year, and authors?',
     ],
   },
   {

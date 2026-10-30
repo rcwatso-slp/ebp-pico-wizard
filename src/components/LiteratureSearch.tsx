@@ -1,43 +1,82 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { fetchPubMedAbstract, hitLink, searchLiterature, type SearchHit, type SearchSource } from '../search';
-import type { CandidateArticle, Step3State } from '../types';
+import type { CandidateArticle, SearchLogEntry, Step3State } from '../types';
 
 interface LiteratureSearchProps {
   queries: Step3State['queries'];
   articles: CandidateArticle[];
-  onAdd: (hit: SearchHit, source: SearchSource, query: string) => void;
+  onAdd: (hit: SearchHit, source: SearchSource, searchId: string) => void;
+  // Records a completed search and returns its log id.
+  onLog: (entry: Omit<SearchLogEntry, 'id' | 'date'>) => string;
 }
 
-const sources: { key: SearchSource; label: string; note: string }[] = [
-  { key: 'pubmed', label: 'PubMed', note: 'The main biomedical database, including ASHA journals. Shows study design tags.' },
-  { key: 'europepmc', label: 'Europe PMC', note: 'Includes PubMed plus more. Shows abstracts and flags free full text.' },
+const sources: { key: SearchSource; label: string; note: string; webUrl: (q: string) => string }[] = [
+  {
+    key: 'pubmed',
+    label: 'PubMed',
+    note: 'The main biomedical database, including ASHA journals. Shows study design tags.',
+    webUrl: (q) => `https://pubmed.ncbi.nlm.nih.gov/?term=${encodeURIComponent(q)}`,
+  },
+  {
+    key: 'europepmc',
+    label: 'Europe PMC',
+    note: 'Includes PubMed plus more. Shows abstracts and flags free full text.',
+    webUrl: (q) => `https://europepmc.org/search?query=${encodeURIComponent(q)}`,
+  },
 ];
 
-const queryOptions = [
-  ['keywordOnly', 'Keyword only (P + I + O)'],
-  ['interventionFocused', 'Intervention-focused'],
-  ['outcomeFocused', 'Outcome-focused'],
-  ['fullPico', 'Full PICO sentence'],
+// Search strategies, from most to least focused. Each teaches when to widen a search.
+const strategies = [
+  {
+    key: 'keywordOnly',
+    label: 'P + I + O',
+    title: 'All three concepts',
+    when: 'Most focused. Start here.',
+  },
+  {
+    key: 'interventionFocused',
+    label: 'P + I',
+    title: 'Drop the outcome',
+    when: 'Too few results? See everything studied with this intervention and population.',
+  },
+  {
+    key: 'outcomeFocused',
+    label: 'P + O',
+    title: 'Drop the intervention',
+    when: 'Find which interventions have been studied for this outcome.',
+  },
 ] as const;
 
-type QueryKey = (typeof queryOptions)[number][0];
+type StrategyKey = (typeof strategies)[number]['key'];
+
+// Limits results to stronger designs. Syntax differs by database.
+const designFilter: Record<SearchSource, string> = {
+  pubmed: ' AND (systematic review[pt] OR meta-analysis[pt] OR randomized controlled trial[pt])',
+  europepmc: ' AND (PUB_TYPE:"Systematic Review" OR PUB_TYPE:"Meta-Analysis" OR PUB_TYPE:"Randomized Controlled Trial")',
+};
 
 const sameArticle = (a: CandidateArticle, hit: SearchHit): boolean =>
   a.link.trim() === hitLink(hit) ||
   a.link.trim() === hit.url ||
   (!!a.title.trim() && a.title.trim().toLowerCase() === hit.title.toLowerCase());
 
-const resultHint = (total: number): string => {
-  if (total === 0) return 'No results. Try removing a concept joined with AND, dropping the comparison, or adding synonyms with OR.';
-  if (total > 300) return 'That is a lot to screen. Add a concept with AND or use more specific terms to narrow it down.';
+const resultHint = (total: number, strategy: StrategyKey | 'custom', filtered: boolean): string => {
+  if (total === 0) {
+    if (filtered) return 'No results. Turn off the design filter to include other study types.';
+    if (strategy === 'keywordOnly') return 'No results. Try "Drop the outcome," or add more synonyms to your terms.';
+    return 'No results. Add synonyms with OR in your terms, or try another strategy.';
+  }
+  if (total > 300) return 'That is a lot to screen. Try the design filter, or use more specific terms.';
   return '';
 };
 
-export const LiteratureSearch: React.FC<LiteratureSearchProps> = ({ queries, articles, onAdd }) => {
+export const LiteratureSearch: React.FC<LiteratureSearchProps> = ({ queries, articles, onAdd, onLog }) => {
   const [source, setSource] = useState<SearchSource>('pubmed');
-  const [queryKey, setQueryKey] = useState<QueryKey>('keywordOnly');
+  const [strategy, setStrategy] = useState<StrategyKey>('keywordOnly');
   const [query, setQuery] = useState(queries.keywordOnly);
-  const [ranQuery, setRanQuery] = useState('');
+  const [filterDesigns, setFilterDesigns] = useState(false);
+  const [ran, setRan] = useState<{ query: string; source: SearchSource; strategy: StrategyKey | 'custom'; filtered: boolean } | null>(null);
+  const [searchId, setSearchId] = useState('');
   const [hits, setHits] = useState<SearchHit[]>([]);
   const [total, setTotal] = useState<number | null>(null);
   const [next, setNext] = useState<number | string | null>(null);
@@ -49,25 +88,42 @@ export const LiteratureSearch: React.FC<LiteratureSearchProps> = ({ queries, art
 
   useEffect(() => () => abortRef.current?.abort(), []);
 
-  // Keep the box in sync when the student rebuilds queries above.
-  const selectedQuery = queries[queryKey];
-  useEffect(() => setQuery(selectedQuery), [selectedQuery]);
+  // Keep the box in sync when the student changes their terms.
+  const strategyQuery = queries[strategy];
+  useEffect(() => setQuery(strategyQuery), [strategyQuery]);
+
+  const edited = query.trim() !== strategyQuery.trim();
+  const fullQuery = (q: string, src: SearchSource, filtered: boolean): string => (filtered ? `(${q})${designFilter[src]}` : q);
 
   const run = async (append: boolean): Promise<void> => {
-    const q = append ? ranQuery : query.trim();
-    if (!q) return;
+    const base = append && ran ? ran.query : query.trim();
+    const src = append && ran ? ran.source : source;
+    const filtered = append && ran ? ran.filtered : filterDesigns;
+    if (!base) return;
     abortRef.current?.abort();
     const controller = new AbortController();
     abortRef.current = controller;
     setLoading(true);
     setError('');
     try {
-      const page = await searchLiterature(source, q, append ? next : null, controller.signal);
+      const page = await searchLiterature(src, fullQuery(base, src, filtered), append ? next : null, controller.signal);
       setHits((prev) => (append ? [...prev, ...page.hits] : page.hits));
       setTotal(page.total);
       setNext(page.next);
-      setRanQuery(q);
-      if (!append) setOpenAbstracts({});
+      if (!append) {
+        const strat = edited ? 'custom' : strategy;
+        const label = strat === 'custom' ? 'Custom' : strategies.find((s) => s.key === strat)?.label ?? '';
+        setRan({ query: base, source: src, strategy: strat, filtered });
+        setOpenAbstracts({});
+        setSearchId(
+          onLog({
+            source: sources.find((s) => s.key === src)?.label ?? src,
+            strategy: filtered ? `${label}, reviews & trials only` : label,
+            query: base,
+            total: page.total,
+          }),
+        );
+      }
     } catch (err) {
       if ((err as Error).name === 'AbortError') return;
       setError('The search service did not respond. Check your connection and try again in a moment.');
@@ -89,14 +145,15 @@ export const LiteratureSearch: React.FC<LiteratureSearchProps> = ({ queries, art
   };
 
   const abstractFor = (hit: SearchHit): string | undefined => hit.abstract ?? abstracts[hit.id];
-  const hint = total !== null ? resultHint(total) : '';
+  const ranSource = ran ? sources.find((s) => s.key === ran.source) : undefined;
+  const hint = total !== null && ran ? resultHint(total, ran.strategy, ran.filtered) : '';
 
   return (
     <div className="card searchPanel">
       <h3>Search the literature</h3>
       <p className="muted tiny">
-        Free databases with no account needed. Open and read an article before adding it to your plan; titles and abstracts are not
-        enough.
+        Free databases with no account needed. Every search you run is saved to your search log. Open and read an article before relying on
+        it; titles and abstracts are not enough.
       </p>
 
       <div className="segmented" role="radiogroup" aria-label="Database">
@@ -115,23 +172,21 @@ export const LiteratureSearch: React.FC<LiteratureSearchProps> = ({ queries, art
       </div>
       <p className="muted tiny">{sources.find((s) => s.key === source)?.note}</p>
 
-      <label>
-        Start from one of your queries
-        <select
-          value={queryKey}
-          onChange={(e) => {
-            const key = e.target.value as QueryKey;
-            setQueryKey(key);
-            setQuery(queries[key]);
-          }}
-        >
-          {queryOptions.map(([key, label]) => (
-            <option key={key} value={key}>
-              {label}
-            </option>
+      <fieldset>
+        <legend>Search strategy</legend>
+        <div className="strategyList" role="radiogroup">
+          {strategies.map((s) => (
+            <label key={s.key} className={`strategyCard ${strategy === s.key ? 'checked' : ''}`}>
+              <input type="radio" name="strategy" checked={strategy === s.key} onChange={() => setStrategy(s.key)} />
+              <span className="strategyLabel">{s.label}</span>
+              <span>
+                <strong>{s.title}</strong>
+                <span className="muted tiny">{s.when}</span>
+              </span>
+            </label>
           ))}
-        </select>
-      </label>
+        </div>
+      </fieldset>
 
       <form
         className="searchForm"
@@ -148,16 +203,31 @@ export const LiteratureSearch: React.FC<LiteratureSearchProps> = ({ queries, art
           {loading && !hits.length ? 'Searching…' : 'Search'}
         </button>
       </form>
+      <div className="searchOptions">
+        <label className="checkRow">
+          <input type="checkbox" checked={filterDesigns} onChange={(e) => setFilterDesigns(e.target.checked)} />
+          Only systematic reviews, meta-analyses, and randomized controlled trials
+        </label>
+        {edited ? (
+          <button type="button" className="ghost small" onClick={() => setQuery(strategyQuery)}>
+            Undo my edits
+          </button>
+        ) : null}
+      </div>
 
       {error ? <p className="searchError">{error}</p> : null}
 
-      {total !== null && !error ? (
+      {total !== null && !error && ranSource ? (
         <div className="searchSummary" aria-live="polite">
           <strong>
             {total.toLocaleString()} result{total === 1 ? '' : 's'}
           </strong>{' '}
-          in {sources.find((s) => s.key === source)?.label}
+          in {ranSource.label}
           {hits.length ? ` · showing ${hits.length}` : ''}
+          {' · '}
+          <a href={ranSource.webUrl(fullQuery(ran!.query, ran!.source, ran!.filtered))} target="_blank" rel="noopener noreferrer">
+            Open this search in {ranSource.label}
+          </a>
           {hint ? <p className="muted tiny">{hint}</p> : null}
         </div>
       ) : null}
@@ -195,8 +265,13 @@ export const LiteratureSearch: React.FC<LiteratureSearchProps> = ({ queries, art
                       {openAbstracts[hit.id] ? 'Hide abstract' : 'Show abstract'}
                     </button>
                   ) : null}
-                  <button type="button" className="small" disabled={added} onClick={() => onAdd(hit, source, ranQuery)}>
-                    {added ? 'Added ✓' : 'Add to candidates'}
+                  <button
+                    type="button"
+                    className="small"
+                    disabled={added}
+                    onClick={() => onAdd(hit, ran?.source ?? source, searchId)}
+                  >
+                    {added ? 'Saved ✓' : 'Save for screening'}
                   </button>
                 </div>
               </li>
