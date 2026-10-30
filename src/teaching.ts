@@ -97,10 +97,12 @@ export const stepGuides: StepGuideContent[] = [
     why:
       'PICO (Population, Intervention, Comparison, Outcome) turns a broad clinical worry into a question the literature can answer. A focused PICO also gives you the exact concepts to search for in Step 3.',
     steps: [
-      'P: describe the population by age range, diagnosis, and severity if relevant.',
-      'I: name a specific intervention approach, not just “therapy.”',
-      'C (optional): name an alternative, such as another approach or no treatment.',
+      'Start from your Step 1 drafts for P and O.',
+      'P: describe the population by age group, disorder, and severity if relevant.',
+      'I: name a specific intervention approach, not just \u201ctherapy.\u201d',
+      'C (optional): add a comparison only if you are choosing between options, such as another approach or no treatment.',
       'O: name an outcome you can measure and that matters for this client.',
+      'Optionally brainstorm with a generative AI tool, then judge its suggestions yourself.',
       'Create candidates, rate them, then lock the one that is both feasible and searchable.',
       'Add at least 10 keywords: synonyms, abbreviations, and alternate spellings.',
     ],
@@ -120,6 +122,8 @@ export const stepGuides: StepGuideContent[] = [
       },
     ],
     pitfalls: [
+      'Adding a comparison just to fill the box. If you are not choosing between two options, leave C blank.',
+      'Copying an AI-suggested question without checking that it still matches your client and treatment target.',
       'An outcome that cannot be measured (“better communication”).',
       'A population so narrow no study will match it, or so broad that results don’t apply.',
       'An intervention that isn’t realistic in your setting.',

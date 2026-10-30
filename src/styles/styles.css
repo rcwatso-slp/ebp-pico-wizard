@@ -527,3 +527,7 @@ button.small, .linkBtn.small { padding: .3rem .65rem; font-size: .82rem; }
 }
 .fromStep1 .picoDraft { margin-bottom: .45rem; }
 .fromStep1 h3 { margin-top: 0; }
+
+.aiHelper summary { cursor: pointer; display: flex; flex-direction: column; gap: .15rem; }
+.aiHelper[open] summary { margin-bottom: .6rem; }
+.aiHelper textarea { width: 100%; margin-bottom: .5rem; font-size: .85rem; }
