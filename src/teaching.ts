@@ -29,17 +29,17 @@ export const stepGuides: StepGuideContent[] = [
     why:
       'Evidence-based practice integrates three sources: the best available research evidence, your clinical expertise, and the client’s and family’s values and preferences. This wizard walks you from a real client need to a written plan you can defend with evidence.',
     steps: [
-      'Case: describe the client’s functional need (de-identified).',
-      'PICO: turn that need into a focused, searchable question.',
-      'Search: plan keywords and run your search in Elicit and other databases.',
-      'Screen: score each article for fit and quality, then pick your top studies.',
-      'Extract: pull out what the studies actually did and found.',
-      'Plan: write goals and methods that are tied to that evidence.',
+      'Case: describe your client and the specific skill to change (de-identified).',
+      'PICO: turn that into a focused, searchable question and search terms.',
+      'Search: search databases and trusted SLP sources, and save possible articles.',
+      'Appraise: judge each article\u2019s fit, study design, and quality, then pick your top studies.',
+      'Extract: pull out what the studies actually did and found, and summarize the evidence.',
+      'Plan: write goals, methods, and progress monitoring tied to that evidence.',
     ],
     examples: [],
     pitfalls: [
       'Entering anything that could identify a client: names, birth dates, school or facility names, exact session dates, record numbers.',
-      'Trusting an AI summary without opening the article. Tools like Elicit and ChatGPT can misstate findings or invent citations.',
+      'Trusting an AI summary without opening the article. AI tools such as Elicit and ChatGPT can misstate findings or invent citations.',
     ],
     selfCheck: [
       'I know where my client’s de-identified case information is.',
