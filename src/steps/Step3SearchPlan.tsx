@@ -1,9 +1,11 @@
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import { LiteratureSearch } from '../components/LiteratureSearch';
 import { hitLink, type SearchHit, type SearchSource } from '../search';
-import { ageGroupFromAge, concernLabel, concernSearchTerms } from '../utils';
+import { KeywordColumns } from '../components/KeywordColumns';
+import { withKeywordColumns } from '../searchTerms';
+import { ageGroupFromAge, concernLabel } from '../utils';
 import type { StepProps } from '../common';
-import type { CandidateArticle, SearchKeywords, WizardData } from '../types';
+import type { CandidateArticle, WizardData } from '../types';
 
 const copyText = async (value: string): Promise<void> => {
   try {
@@ -11,48 +13,6 @@ const copyText = async (value: string): Promise<void> => {
   } catch {
     // noop
   }
-};
-
-// Case-insensitive dedupe that keeps the first spelling seen.
-const uniqueTerms = (values: string[]): string[] => {
-  const seen = new Set<string>();
-  return values
-    .map((v) => v.trim())
-    .filter((v) => {
-      const key = v.toLowerCase();
-      if (!v || seen.has(key)) return false;
-      seen.add(key);
-      return true;
-    });
-};
-
-const quoteTerm = (term: string): string => {
-  const t = term.trim();
-  if (!t) return '';
-  if (/^".*"$/.test(t) || !/\s/.test(t)) return t;
-  return `"${t.replace(/"/g, '')}"`;
-};
-
-// OR the synonyms inside one concept; parenthesize when there is more than one.
-const orGroup = (terms: string[]): string => {
-  const quoted = terms.map(quoteTerm).filter(Boolean);
-  if (quoted.length <= 1) return quoted[0] ?? '';
-  return `(${quoted.join(' OR ')})`;
-};
-
-const andGroups = (...groups: string[]): string => groups.filter(Boolean).join(' AND ');
-
-const buildQueries = (finalPico: string, keywords: SearchKeywords): WizardData['step3']['queries'] => {
-  const p = orGroup(keywords.population);
-  const i = orGroup(keywords.intervention);
-  const o = orGroup(keywords.outcome);
-
-  return {
-    fullPico: finalPico || '[Add final PICO in Step 2]',
-    keywordOnly: andGroups(p, i, o),
-    interventionFocused: andGroups(i, p),
-    outcomeFocused: andGroups(o, p),
-  };
 };
 
 const buildElicitPrompt = (state: WizardData): string => {
@@ -83,97 +43,7 @@ const buildElicitPrompt = (state: WizardData): string => {
 };
 
 export const Step3SearchPlan: React.FC<StepProps> = ({ state, setState }) => {
-  const [chipsInput, setChipsInput] = useState({ population: '', intervention: '', outcome: '' });
   const [copied, setCopied] = useState('');
-
-  useEffect(() => {
-    if (state.step3.keywordsEdited) return;
-
-    // Auto-derive keyword buckets from Case Snapshot + PICO so Step 3 starts pre-filled.
-    // Setting, age group, and timeframe would widen an OR'd concept rather than focus it,
-    // and Step 2 keywords are sorted by the student below.
-    // Only the primary area focuses the search; OR-ing co-occurring areas would widen it.
-    const target = state.caseSnapshot.primaryConcern;
-    const population = uniqueTerms([
-      state.step2.builder.p,
-      ...(target ? concernSearchTerms(target, state.caseSnapshot.otherConcern) : []),
-    ]);
-    const intervention = uniqueTerms([state.step2.builder.i]);
-    const outcome = uniqueTerms([state.step2.builder.o, state.step2.builder.measurement]);
-    const keywordColumns = { population, intervention, outcome };
-    const queries = buildQueries(state.step2.finalPico, keywordColumns);
-
-    const sameKeywords = JSON.stringify(state.step3.keywordColumns) === JSON.stringify(keywordColumns);
-    const sameQueries = JSON.stringify(state.step3.queries) === JSON.stringify(queries);
-    if (sameKeywords && sameQueries) return;
-
-    setState((prev: WizardData) => ({
-      ...prev,
-      step3: {
-        ...prev.step3,
-        keywordColumns,
-        queries,
-      },
-    }));
-  }, [
-    setState,
-    state.caseSnapshot.primaryConcern,
-    state.caseSnapshot.otherConcern,
-    state.step2.builder.i,
-    state.step2.builder.measurement,
-    state.step2.builder.o,
-    state.step2.builder.p,
-    state.step2.finalPico,
-    state.step3.keywordsEdited,
-    state.step3.keywordColumns,
-    state.step3.queries,
-  ]);
-
-  const addChips = (key: 'population' | 'intervention' | 'outcome'): void => {
-    const values = chipsInput[key]
-      .split(',')
-      .map((v) => v.trim())
-      .filter(Boolean);
-    if (!values.length) return;
-
-    setState((prev: WizardData) => ({
-      ...prev,
-      step3: {
-        ...prev.step3,
-        keywordsEdited: true,
-        keywordColumns: {
-          ...prev.step3.keywordColumns,
-          [key]: Array.from(new Set([...prev.step3.keywordColumns[key], ...values])),
-        },
-      },
-    }));
-    setChipsInput((prev) => ({ ...prev, [key]: '' }));
-  };
-
-  const placeKeyword = (term: string, key: 'population' | 'intervention' | 'outcome'): void => {
-    setState((prev: WizardData) => {
-      const keywordColumns = {
-        ...prev.step3.keywordColumns,
-        [key]: Array.from(new Set([...prev.step3.keywordColumns[key], term])),
-      };
-      return {
-        ...prev,
-        step3: {
-          ...prev.step3,
-          keywordsEdited: true,
-          keywordColumns,
-          queries: buildQueries(prev.step2.finalPico, keywordColumns),
-        },
-      };
-    });
-  };
-
-  const sortedTerms = new Set(
-    [...state.step3.keywordColumns.population, ...state.step3.keywordColumns.intervention, ...state.step3.keywordColumns.outcome].map(
-      (t) => t.toLowerCase(),
-    ),
-  );
-  const unsortedKeywords = state.step2.keywords.filter((k) => !sortedTerms.has(k.toLowerCase()));
 
   const addFromSearch = (hit: SearchHit, source: SearchSource): void => {
     const article = {
@@ -191,93 +61,25 @@ export const Step3SearchPlan: React.FC<StepProps> = ({ state, setState }) => {
     });
   };
 
-  const generateQueries = (): void => {
-    setState((prev: WizardData) => ({
-      ...prev,
-      step3: {
-        ...prev.step3,
-        keywordsEdited: true,
-        queries: buildQueries(prev.step2.finalPico, prev.step3.keywordColumns),
-      },
-    }));
-  };
+  const resetQueries = (): void => setState((prev: WizardData) => withKeywordColumns(prev, prev.step3.keywordColumns));
 
   return (
     <section>
       <h2>Step 3: Search Plan</h2>
-      <p className="muted">Group your keywords by concept, build queries, then search for candidate articles.</p>
+      <p className="muted">Your search terms from Step 2 become Boolean searches. Run them here, then save the articles worth screening.</p>
 
-      {unsortedKeywords.length ? (
-        <div className="card">
-          <h3>Sort your Step 2 keywords</h3>
-          <p className="muted tiny">Which concept does each keyword describe? Click P, I, or O to place it in a column below.</p>
-          <ul className="sortList">
-            {unsortedKeywords.map((k) => (
-              <li key={k} className="sortItem">
-                <span>{k}</span>
-                {(['population', 'intervention', 'outcome'] as const).map((col) => (
-                  <button
-                    key={col}
-                    type="button"
-                    className="ghost small"
-                    title={`Add to ${col}`}
-                    aria-label={`Add ${k} to ${col}`}
-                    onClick={() => placeKeyword(k, col)}
-                  >
-                    {col[0].toUpperCase()}
-                  </button>
-                ))}
-              </li>
-            ))}
-          </ul>
-        </div>
-      ) : null}
-
-      <div className="formGrid three">
-        {(['population', 'intervention', 'outcome'] as const).map((key) => (
-          <div key={key} className="card">
-            <h3>{key[0].toUpperCase() + key.slice(1)} keywords</h3>
-            <div className="chipsEditor">
-              <input
-                value={chipsInput[key]}
-                onChange={(e) => setChipsInput((prev) => ({ ...prev, [key]: e.target.value }))}
-                placeholder="comma-separated"
-              />
-              <button type="button" onClick={() => addChips(key)}>
-                Add
-              </button>
-            </div>
-            <div className="chipsWrap">
-              {state.step3.keywordColumns[key].map((chip) => (
-                <button
-                  type="button"
-                  className="chip selected"
-                  key={chip}
-                  onClick={() =>
-                    setState((prev: WizardData) => ({
-                      ...prev,
-                      step3: {
-                        ...prev.step3,
-                        keywordsEdited: true,
-                        keywordColumns: {
-                          ...prev.step3.keywordColumns,
-                          [key]: prev.step3.keywordColumns[key].filter((v) => v !== chip),
-                        },
-                      },
-                    }))
-                  }
-                >
-                  {chip} ×
-                </button>
-              ))}
-            </div>
-          </div>
-        ))}
+      <div className="card">
+        <h3>Your search terms</h3>
+        <p className="fieldHint">Terms in the same concept are joined with OR; concepts are joined with AND. Changing a term rebuilds the searches below.</p>
+        <KeywordColumns state={state} setState={setState} />
       </div>
 
-      <button type="button" onClick={generateQueries}>
-        Rebuild queries from keywords
-      </button>
+      <div className="buttonRow">
+        <h3>Searches built from your terms</h3>
+        <button type="button" className="ghost small" onClick={resetQueries}>
+          Undo my edits to the searches
+        </button>
+      </div>
 
       <div className="queryGrid">
         {([

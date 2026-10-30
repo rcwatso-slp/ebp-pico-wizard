@@ -79,24 +79,18 @@ export interface PicoBuilder {
   timeframe: string;
 }
 
-export interface PicoCandidate {
-  id: string;
-  question: string;
-  p: string;
-  i: string;
-  c: string;
-  o: string;
-  feasibility: number;
-  searchability: number;
+export interface QuestionChecks {
+  searchable: boolean;
+  feasible: boolean;
+  relevant: boolean;
 }
 
 export interface Step2State {
   builder: PicoBuilder;
-  candidates: PicoCandidate[];
   finalPico: string;
-  picoLocked: boolean;
+  questionChecks: QuestionChecks;
+  // Older saves kept one unsorted keyword list; it is shown for sorting into the concept columns.
   keywords: string[];
-  prompt: string;
 }
 
 export interface SearchKeywords {

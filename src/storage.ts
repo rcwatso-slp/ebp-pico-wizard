@@ -40,11 +40,9 @@ export const getDefaultState = (): WizardData => ({
       measurement: '',
       timeframe: '',
     },
-    candidates: [],
     finalPico: '',
-    picoLocked: false,
+    questionChecks: { searchable: false, feasible: false, relevant: false },
     keywords: [],
-    prompt: '',
   },
   step3: {
     keywordsEdited: false,
@@ -114,6 +112,20 @@ const migrateCaseSnapshot = (parsed: WizardData): void => {
   if (typeof cs.clientPriorities !== 'string') cs.clientPriorities = '';
 };
 
+// Older saves had candidate questions, 1-5 ratings, and a "Lock PICO" flag.
+// A locked question counts as checked; the candidates and ratings are dropped.
+const migrateStep2 = (parsed: WizardData): void => {
+  const s2 = parsed.step2 as WizardData['step2'] & { picoLocked?: boolean; candidates?: unknown; prompt?: unknown };
+  if (!s2.questionChecks) {
+    const locked = s2.picoLocked === true;
+    s2.questionChecks = { searchable: locked, feasible: locked, relevant: locked };
+  }
+  delete s2.picoLocked;
+  delete s2.candidates;
+  delete s2.prompt;
+  if (!Array.isArray(s2.keywords)) s2.keywords = [];
+};
+
 export const loadState = (): WizardData => {
   const raw = localStorage.getItem(STORAGE_KEY);
   if (!raw) {
@@ -130,6 +142,7 @@ export const loadState = (): WizardData => {
       parsed.step3.keywordsEdited = false;
     }
     migrateCaseSnapshot(parsed);
+    migrateStep2(parsed);
     if (typeof parsed.step3.elicitPrompt !== 'string') {
       parsed.step3.elicitPrompt = '';
     }

@@ -1,16 +1,32 @@
 import React, { useState } from 'react';
 import { PhiField } from '../components/PhiField';
+import { KeywordColumns } from '../components/KeywordColumns';
+import { conceptKeys, seedKeywordColumns, uniqueTerms, withKeywordColumns, type ConceptKey } from '../searchTerms';
+import type { QuestionChecks } from '../types';
 import { buildCaseSnapshotText, suggestedPopulation } from '../utils';
 import type { StepProps } from '../common';
 
-const joinKeywords = (value: string): string[] =>
-  value
-    .split(',')
-    .map((k) => k.trim())
-    .filter(Boolean);
+const GENERIC_INTERVENTIONS = /^(speech|language|speech[- ]language)?\s*(therapy|treatment|intervention|services)$/i;
+
+const selfChecks: { key: keyof QuestionChecks; title: string; detail: string }[] = [
+  {
+    key: 'searchable',
+    title: 'Searchable',
+    detail: 'I expect there is published research on this intervention with this population.',
+  },
+  {
+    key: 'feasible',
+    title: 'Feasible',
+    detail: 'I could deliver this intervention in my setting, given the constraints from Step 1.',
+  },
+  {
+    key: 'relevant',
+    title: 'Relevant',
+    detail: 'The answer would change what I do with this client.',
+  },
+];
 
 export const Step2Pico: React.FC<StepProps> = ({ state, setState, onPhiWarning }) => {
-  const [keywordInput, setKeywordInput] = useState('');
   const [copied, setCopied] = useState(false);
   const b = state.step2.builder;
   const draftP = suggestedPopulation(state.caseSnapshot);
@@ -20,27 +36,49 @@ export const Step2Pico: React.FC<StepProps> = ({ state, setState, onPhiWarning }
   const setBuilder = (patch: Partial<typeof b>): void =>
     setState((prev) => ({ ...prev, step2: { ...prev.step2, builder: { ...prev.step2.builder, ...patch } } }));
 
-  const buildQuestion = (variant: number): string => {
-    const comparator = b.c ? ` compared with ${b.c}` : '';
-    const base = `For ${b.p || '[Population]'}, does ${b.i || '[Intervention]'}${comparator} improve ${b.o || '[Outcome]'}`;
-    if (variant === 1) return `${base}${b.measurement ? ` as measured by ${b.measurement}` : ''}${b.timeframe ? ` over ${b.timeframe}` : ''}?`;
-    if (variant === 2) return `${base} in routine SLP treatment${b.timeframe ? ` within ${b.timeframe}` : ''}?`;
-    return `${base} for functional gains${b.measurement ? ` on ${b.measurement}` : ''}?`;
-  };
+  const assembled =
+    b.p && b.i && b.o
+      ? `For ${b.p}, does ${b.i}${b.c ? `, compared with ${b.c},` : ''} improve ${b.o}${b.measurement ? `, as measured by ${b.measurement}` : ''}${
+          b.timeframe ? `, over ${b.timeframe}` : ''
+        }?`
+      : '';
 
-  const createCandidates = (): void => {
-    const candidates = [1, 2, 3].map((variant) => ({
-      id: crypto.randomUUID(),
-      question: buildQuestion(variant),
-      p: b.p,
-      i: b.i,
-      c: b.c,
-      o: b.o,
-      feasibility: 3,
-      searchability: 3,
+  const setFinal = (finalPico: string): void =>
+    setState((prev) => ({
+      ...prev,
+      step2: { ...prev.step2, finalPico },
+      step3: { ...prev.step3, queries: { ...prev.step3.queries, fullPico: finalPico } },
     }));
-    setState((prev) => ({ ...prev, step2: { ...prev.step2, candidates } }));
-  };
+
+  const setCheck = (key: keyof QuestionChecks, value: boolean): void =>
+    setState((prev) => ({ ...prev, step2: { ...prev.step2, questionChecks: { ...prev.step2.questionChecks, [key]: value } } }));
+
+  const target = state.caseSnapshot.treatmentTarget.trim().toLowerCase();
+  const outcome = b.o.trim().toLowerCase();
+  const autoChecks = [
+    { ok: !!b.p.trim(), text: 'Population describes who the client is (age group, disorder, severity).' },
+    {
+      ok: !!b.i.trim() && !GENERIC_INTERVENTIONS.test(b.i.trim()),
+      text: b.i.trim() && GENERIC_INTERVENTIONS.test(b.i.trim()) ? '\u201cTherapy\u201d is too general. Name a specific approach.' : 'Intervention names a specific approach.',
+    },
+    { ok: !!outcome, text: 'Outcome names a measurable change.' },
+    {
+      ok: !target || (!!outcome && (outcome.includes(target) || target.includes(outcome))),
+      text: target
+        ? `Outcome matches your Step 1 treatment target (\u201c${state.caseSnapshot.treatmentTarget.trim()}\u201d). If you changed it on purpose, that\u2019s fine.`
+        : 'Outcome matches your treatment target.',
+    },
+  ];
+
+  const columns = state.step3.keywordColumns;
+  const columnsEmpty = conceptKeys.every((k) => !columns[k].length);
+  const seeds = seedKeywordColumns(state);
+  const hasSeeds = conceptKeys.some((k) => seeds[k].length);
+  const sorted = new Set(conceptKeys.flatMap((k) => columns[k]).map((t) => t.toLowerCase()));
+  const unsortedKeywords = state.step2.keywords.filter((k) => !sorted.has(k.toLowerCase()));
+
+  const placeKeyword = (term: string, key: ConceptKey): void =>
+    setState((prev) => withKeywordColumns(prev, { ...prev.step3.keywordColumns, [key]: uniqueTerms([...prev.step3.keywordColumns[key], term]) }));
 
   const aiPrompt = [
     'You are helping a graduate student clinician in speech-language pathology write a focused, searchable PICO question for an evidence-based practice search.',
@@ -209,7 +247,7 @@ export const Step2Pico: React.FC<StepProps> = ({ state, setState, onPhiWarning }
         <p className="muted tiny">
           Copy this prompt into any generative AI tool you are allowed to use, such as ChatGPT, Claude, Gemini, or Copilot. It is built
           from your case and draft above, and updates as you edit. Using AI to draft is fine; your job is to judge whether its suggestions
-          fit your client and are searchable. Paste the comma-separated search terms it gives you into the Keywords box below.
+          fit your client and are searchable. Paste each list of search terms it gives you into the matching column under Search terms by concept.
         </p>
         <textarea readOnly value={aiPrompt} rows={10} aria-label="Generative AI prompt" />
         <button type="button" className="ghost small" onClick={() => void copyPrompt()}>
@@ -217,146 +255,108 @@ export const Step2Pico: React.FC<StepProps> = ({ state, setState, onPhiWarning }
         </button>
       </details>
 
-      <div className="buttonRow">
-        <button type="button" onClick={createCandidates}>
-          Create 3 candidate PICO questions
-        </button>
-      </div>
-
-      {state.step2.candidates.map((c) => (
-        <article key={c.id} className="card">
-          <h3>{c.question}</h3>
-          <p>P: {c.p || '-'}</p>
-          <p>I: {c.i || '-'}</p>
-          <p>C: {c.c || '-'}</p>
-          <p>O: {c.o || '-'}</p>
-          <div className="formGrid two compact">
-            <label>
-              Feasibility ({c.feasibility})
-              <input
-                type="range"
-                min={1}
-                max={5}
-                value={c.feasibility}
-                onChange={(e) =>
-                  setState((prev) => ({
-                    ...prev,
-                    step2: {
-                      ...prev.step2,
-                      candidates: prev.step2.candidates.map((row) =>
-                        row.id === c.id ? { ...row, feasibility: Number(e.target.value) } : row,
-                      ),
-                    },
-                  }))
-                }
-              />
-            </label>
-            <label>
-              Searchability ({c.searchability})
-              <input
-                type="range"
-                min={1}
-                max={5}
-                value={c.searchability}
-                onChange={(e) =>
-                  setState((prev) => ({
-                    ...prev,
-                    step2: {
-                      ...prev.step2,
-                      candidates: prev.step2.candidates.map((row) =>
-                        row.id === c.id ? { ...row, searchability: Number(e.target.value) } : row,
-                      ),
-                    },
-                  }))
-                }
-              />
-            </label>
-          </div>
-          <button
-            type="button"
-            onClick={() =>
-              setState((prev) => ({
-                ...prev,
-                step2: { ...prev.step2, finalPico: c.question, picoLocked: false },
-              }))
-            }
-          >
-            Select this PICO
-          </button>
-        </article>
-      ))}
-
-      <PhiField
-        fieldId="step2_final_pico"
-        label="Final PICO"
-        value={state.step2.finalPico}
-        ignored={!!state.phiIgnoredFields.step2_final_pico}
-        onToggleIgnore={(checked) => setState((prev) => ({ ...prev, phiIgnoredFields: { ...prev.phiIgnoredFields, step2_final_pico: checked } }))}
-        onWarning={onPhiWarning}
-      >
-        <label>
-          Final locked PICO question *
-          <textarea
-            value={state.step2.finalPico}
-            onChange={(e) =>
-              setState((prev) => ({
-                ...prev,
-                step2: { ...prev.step2, finalPico: e.target.value, picoLocked: false },
-              }))
-            }
-          />
-        </label>
-      </PhiField>
-      <button
-        type="button"
-        onClick={() =>
-          setState((prev) => ({
-            ...prev,
-            step2: { ...prev.step2, picoLocked: prev.step2.finalPico.trim().length > 0 },
-          }))
-        }
-      >
-        {state.step2.picoLocked ? 'PICO Locked ✓' : 'Lock PICO'}
-      </button>
-
-      <h3>Keywords (at least 10)</h3>
-      <div className="chipsEditor">
-        <input value={keywordInput} placeholder="Add comma-separated terms" onChange={(e) => setKeywordInput(e.target.value)} />
-        <button
-          type="button"
-          onClick={() => {
-            const incoming = joinKeywords(keywordInput);
-            if (!incoming.length) return;
-            setState((prev) => ({
-              ...prev,
-              step2: {
-                ...prev.step2,
-                keywords: Array.from(new Set([...prev.step2.keywords, ...incoming])),
-              },
-            }));
-            setKeywordInput('');
-          }}
+      <article className="card">
+        <h3>Write your question</h3>
+        {assembled ? (
+          <>
+            <p className="fieldHint">Your PICO parts as one question:</p>
+            <p className="picoDraft">
+              <span>Draft</span>
+              {assembled}
+            </p>
+            <button type="button" className="ghost small" disabled={state.step2.finalPico === assembled} onClick={() => setFinal(assembled)}>
+              {state.step2.finalPico === assembled ? 'Using this wording \u2713' : 'Use this wording'}
+            </button>
+          </>
+        ) : (
+          <p className="muted tiny">Fill in P, I, and O above to see them assembled into a question.</p>
+        )}
+        <PhiField
+          fieldId="step2_final_pico"
+          label="PICO question"
+          value={state.step2.finalPico}
+          ignored={!!state.phiIgnoredFields.step2_final_pico}
+          onToggleIgnore={(checked) => setState((prev) => ({ ...prev, phiIgnoredFields: { ...prev.phiIgnoredFields, step2_final_pico: checked } }))}
+          onWarning={onPhiWarning}
         >
-          Add keywords
-        </button>
-      </div>
-      <div className="chipsWrap">
-        {state.step2.keywords.map((k) => (
+          <label className="spaced">
+            Your PICO question *
+            <span className="fieldHint">Edit the wording so it reads naturally, or paste a question from the AI helper.</span>
+            <textarea value={state.step2.finalPico} onChange={(e) => setFinal(e.target.value)} />
+          </label>
+        </PhiField>
+      </article>
+
+      <article className="card">
+        <h3>Check your question</h3>
+        <ul className="autoChecks">
+          {autoChecks.map((c) => (
+            <li key={c.text} className={c.ok ? 'ok' : 'todo'}>
+              {c.text}
+            </li>
+          ))}
+        </ul>
+        <p className="fieldHint">Then confirm each of these yourself *</p>
+        <div className="agreeList compact">
+          {selfChecks.map((c) => {
+            const checked = state.step2.questionChecks[c.key];
+            return (
+              <label key={c.key} className={`agreeCard ${checked ? 'checked' : ''}`}>
+                <input type="checkbox" checked={checked} onChange={(e) => setCheck(c.key, e.target.checked)} />
+                <div>
+                  <strong>{c.title}</strong>
+                  <span>{c.detail}</span>
+                </div>
+              </label>
+            );
+          })}
+        </div>
+      </article>
+
+      <article className="card">
+        <h3>Search terms by concept</h3>
+        <p className="fieldHint">
+          Researchers describe the same idea in different ways. Add at least 3 short terms (1&ndash;3 words) for each concept: synonyms,
+          abbreviations, and related names. You can paste a comma-separated list, such as one from the AI helper. These become your
+          searches in Step 3.
+        </p>
+
+        {columnsEmpty && hasSeeds ? (
           <button
             type="button"
-            className="chip selected"
-            key={k}
-            onClick={() =>
-              setState((prev) => ({
-                ...prev,
-                step2: { ...prev.step2, keywords: prev.step2.keywords.filter((item) => item !== k) },
-              }))
-            }
+            className="ghost small"
+            onClick={() => setState((prev) => withKeywordColumns(prev, seedKeywordColumns(prev)))}
           >
-            {k} ×
+            Start with terms from my PICO
           </button>
-        ))}
-      </div>
+        ) : null}
+
+        {unsortedKeywords.length ? (
+          <div className="sortBox">
+            <p className="fieldHint">Your earlier keywords: click P, I, or O to place each one in a concept.</p>
+            <ul className="sortList">
+              {unsortedKeywords.map((k) => (
+                <li key={k} className="sortItem">
+                  <span>{k}</span>
+                  {conceptKeys.map((col) => (
+                    <button
+                      key={col}
+                      type="button"
+                      className="ghost small"
+                      aria-label={`Add ${k} to ${col}`}
+                      onClick={() => placeKeyword(k, col)}
+                    >
+                      {col[0].toUpperCase()}
+                    </button>
+                  ))}
+                </li>
+              ))}
+            </ul>
+          </div>
+        ) : null}
+
+        <KeywordColumns state={state} setState={setState} />
+      </article>
     </section>
   );
 };

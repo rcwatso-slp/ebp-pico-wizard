@@ -1,3 +1,4 @@
+import { conceptKeys, conceptLabels, MIN_TERMS_PER_CONCEPT } from './searchTerms';
 import type { WizardData } from './types';
 
 const hasText = (v: string): boolean => v.trim().length > 0;
@@ -21,7 +22,12 @@ export const isStep1Complete = (s: WizardData): boolean => {
   );
 };
 
-export const isStep2Complete = (s: WizardData): boolean => s.step2.picoLocked && hasText(s.step2.finalPico) && s.step2.keywords.length >= 10;
+const questionChecked = (s: WizardData): boolean => Object.values(s.step2.questionChecks).every(Boolean);
+
+export const isStep2Complete = (s: WizardData): boolean =>
+  hasText(s.step2.finalPico) &&
+  questionChecked(s) &&
+  conceptKeys.every((k) => s.step3.keywordColumns[k].length >= MIN_TERMS_PER_CONCEPT);
 
 export const isStep3Complete = (s: WizardData): boolean => s.step3.candidateArticles.filter((a) => hasText(a.title)).length >= 2;
 
@@ -112,9 +118,12 @@ export const missingRequirements = (s: WizardData, step: number): string[] => {
     if (!hasText(cs.functionalProblem)) missing.push('Functional problem');
     if (!hasText(cs.treatmentTarget)) missing.push('Treatment target');
   } else if (step === 2) {
-    if (!hasText(s.step2.finalPico)) missing.push('A final PICO question');
-    else if (!s.step2.picoLocked) missing.push('Lock your PICO question');
-    if (s.step2.keywords.length < 10) missing.push(`${10 - s.step2.keywords.length} more keyword(s) (10 needed)`);
+    if (!hasText(s.step2.finalPico)) missing.push('Your PICO question');
+    if (!questionChecked(s)) missing.push('Confirm the question checks');
+    conceptKeys.forEach((k) => {
+      const short = MIN_TERMS_PER_CONCEPT - s.step3.keywordColumns[k].length;
+      if (short > 0) missing.push(`${short} more ${conceptLabels[k].name.toLowerCase()} term${short === 1 ? '' : 's'}`);
+    });
   } else if (step === 3) {
     const titled = s.step3.candidateArticles.filter((a) => hasText(a.title)).length;
     if (titled < 2) missing.push(`${2 - titled} more candidate article title(s)`);

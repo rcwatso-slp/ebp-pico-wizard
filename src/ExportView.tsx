@@ -57,8 +57,10 @@ export const ExportView: React.FC<ExportViewProps> = ({ state }) => {
       </section>
 
       <section className="exportSection">
-        <h2>Keywords + Elicit Queries</h2>
-        <p><strong>Keywords:</strong> {state.step2.keywords.join(', ')}</p>
+        <h2>Search Terms + Queries</h2>
+        <p><strong>Population:</strong> {state.step3.keywordColumns.population.join(', ')}</p>
+        <p><strong>Intervention:</strong> {state.step3.keywordColumns.intervention.join(', ')}</p>
+        <p><strong>Outcome:</strong> {state.step3.keywordColumns.outcome.join(', ')}</p>
         <ul>
           <li><strong>Full PICO:</strong> {state.step3.queries.fullPico}</li>
           <li><strong>Keyword only:</strong> {state.step3.queries.keywordOnly}</li>

@@ -103,8 +103,8 @@ export const stepGuides: StepGuideContent[] = [
       'C (optional): add a comparison only if you are choosing between options, such as another approach or no treatment.',
       'O: name an outcome you can measure and that matters for this client.',
       'Optionally brainstorm with a generative AI tool, then judge its suggestions yourself.',
-      'Create candidates, rate them, then lock the one that is both feasible and searchable.',
-      'Add at least 10 keywords: synonyms, abbreviations, and alternate spellings.',
+      'Write your question, then check that it is searchable, feasible, and relevant.',
+      'List at least 3 search terms for each of P, I, and O: synonyms, abbreviations, and related names.',
     ],
     examples: [
       {
@@ -132,7 +132,7 @@ export const stepGuides: StepGuideContent[] = [
     selfCheck: [
       'Can I point to each of P, I, and O in my final question?',
       'Would I know how to measure my outcome in a session?',
-      'Do my keywords include synonyms for P, I, and O separately?',
+      'Do I have at least 3 short search terms for each of P, I, and O?',
     ],
   },
   {
@@ -140,8 +140,8 @@ export const stepGuides: StepGuideContent[] = [
     why:
       'A planned search is reproducible and less likely to miss key studies. Grouping keywords by concept lets you build Boolean queries, and recording what you searched lets you (and your supervisor) see how you found your evidence.',
     steps: [
-      'Sort your keywords into population, intervention, and outcome columns.',
-      'Use OR between synonyms in the same column, and AND between columns.',
+      'Review your search terms from Step 2; add or remove terms as you learn what works.',
+      'The searches join terms in the same concept with OR, and concepts with AND.',
       'Search PubMed or Europe PMC right here, and read the abstract before adding an article.',
       'Use the study design tags (systematic review, randomized controlled trial) to spot stronger evidence early.',
       'Optionally run the Elicit prompt, and check ASHA Evidence Maps or speechBITE.',
