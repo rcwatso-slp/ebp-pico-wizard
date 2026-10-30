@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { LiteratureSearch } from '../components/LiteratureSearch';
 import { hitLink, type SearchHit, type SearchSource } from '../search';
-import { ageGroupFromAge } from '../utils';
+import { ageGroupFromAge, concernLabel, concernSearchTerms } from '../utils';
 import type { StepProps } from '../common';
 import type { CandidateArticle, SearchKeywords, WizardData } from '../types';
 
@@ -13,8 +13,18 @@ const copyText = async (value: string): Promise<void> => {
   }
 };
 
-const uniqueTerms = (values: string[]): string[] =>
-  Array.from(new Set(values.map((v) => v.trim()).filter(Boolean)));
+// Case-insensitive dedupe that keeps the first spelling seen.
+const uniqueTerms = (values: string[]): string[] => {
+  const seen = new Set<string>();
+  return values
+    .map((v) => v.trim())
+    .filter((v) => {
+      const key = v.toLowerCase();
+      if (!v || seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    });
+};
 
 const quoteTerm = (term: string): string => {
   const t = term.trim();
@@ -53,7 +63,7 @@ const buildElicitPrompt = (state: WizardData): string => {
 
   return [
     'You are helping with an evidence-based search for an SLP student clinician.',
-    `Case context: ${state.caseSnapshot.setting || 'clinical setting'}; age group: ${ageGroupFromAge(state.caseSnapshot.age)}; concerns: ${state.caseSnapshot.concerns.join(', ') || 'not specified'}.`,
+    `Case context: ${state.caseSnapshot.setting || 'clinical setting'}; age group: ${ageGroupFromAge(state.caseSnapshot.age)}; concerns: ${state.caseSnapshot.concerns.map((c) => concernLabel(c, state.caseSnapshot.otherConcern)).join(', ') || 'not specified'}.`,
     `Final PICO: ${state.step2.finalPico || '[missing final PICO]'}`,
     '',
     'Search queries to run:',
@@ -82,10 +92,11 @@ export const Step3SearchPlan: React.FC<StepProps> = ({ state, setState }) => {
     // Auto-derive keyword buckets from Case Snapshot + PICO so Step 3 starts pre-filled.
     // Setting, age group, and timeframe would widen an OR'd concept rather than focus it,
     // and Step 2 keywords are sorted by the student below.
+    // Only the initial target focuses the search; OR-ing every selected concern would widen it.
+    const target = state.caseSnapshot.initialTarget;
     const population = uniqueTerms([
       state.step2.builder.p,
-      state.caseSnapshot.initialTarget === 'other' ? '' : state.caseSnapshot.initialTarget,
-      ...state.caseSnapshot.concerns.filter((c) => c !== 'other'),
+      ...(target ? concernSearchTerms(target, state.caseSnapshot.otherConcern) : []),
     ]);
     const intervention = uniqueTerms([state.step2.builder.i]);
     const outcome = uniqueTerms([state.step2.builder.o, state.step2.builder.measurement]);
@@ -106,8 +117,8 @@ export const Step3SearchPlan: React.FC<StepProps> = ({ state, setState }) => {
     }));
   }, [
     setState,
-    state.caseSnapshot.concerns,
     state.caseSnapshot.initialTarget,
+    state.caseSnapshot.otherConcern,
     state.step2.builder.i,
     state.step2.builder.measurement,
     state.step2.builder.o,

@@ -8,18 +8,32 @@ export type Setting =
   | 'Telepractice'
   | 'Other';
 
+// Stored values; display labels and search terms live in concernOptions (utils.ts).
+// Keep existing values unchanged so students' saved work still matches.
 export type Concern =
-  | 'CAS'
   | 'phonology'
-  | 'language'
-  | 'fluency'
-  | 'voice'
+  | 'CAS'
   | 'dysarthria'
+  | 'apraxia of speech'
+  | 'resonance'
+  | 'late language emergence'
+  | 'language'
+  | 'DLD'
+  | 'literacy'
+  | 'autism'
+  | 'social communication'
+  | 'Down syndrome'
+  | 'AAC'
+  | 'selective mutism'
+  | 'fluency'
+  | 'cluttering'
+  | 'voice'
+  | 'gender-affirming voice'
   | 'aphasia'
   | 'cognition'
   | 'dysphagia'
-  | 'AAC'
-  | 'social communication'
+  | 'pediatric feeding'
+  | 'hearing loss'
   | 'other';
 
 export type ConstraintKey =
@@ -40,6 +54,7 @@ export interface CaseSnapshot {
   setting: Setting | '';
   age: '' | number;
   concerns: Concern[];
+  otherConcern: string;
   functionalProblem: string;
   assessmentAnchors: AssessmentAnchor[];
   initialTarget: Concern | '';

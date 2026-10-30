@@ -10,6 +10,7 @@ export const isStep1Complete = (s: WizardData): boolean => {
     cs.setting &&
     cs.age !== '' &&
     cs.concerns.length > 0 &&
+    (!cs.concerns.includes('other') || hasText(cs.otherConcern)) &&
     hasText(cs.functionalProblem) &&
     cs.initialTarget &&
     cs.constraints.length > 0
@@ -103,6 +104,7 @@ export const missingRequirements = (s: WizardData, step: number): string[] => {
     if (!cs.setting) missing.push('Setting');
     if (cs.age === '') missing.push('Age');
     if (!cs.concerns.length) missing.push('At least one disorder/concern');
+    if (cs.concerns.includes('other') && !hasText(cs.otherConcern)) missing.push('Describe the "Other" area');
     if (!hasText(cs.functionalProblem)) missing.push('Functional participation problem');
     if (!cs.initialTarget) missing.push('Initial target area');
     if (!cs.constraints.length) missing.push('At least one constraint');

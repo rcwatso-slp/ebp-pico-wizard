@@ -1,7 +1,7 @@
 import React from 'react';
 import { PhiField } from '../components/PhiField';
 import type { AssessmentAnchor, Concern, ConstraintKey, Setting, WizardData } from '../types';
-import { ageGroupFromAge, buildCaseSnapshotText, concernOptions, constraintOptions } from '../utils';
+import { ageGroupFromAge, buildCaseSnapshotText, concernGroups, concernLabel, concernOptions, constraintOptions } from '../utils';
 import type { StepProps } from '../common';
 
 const settingOptions = ['University clinic', 'School', 'Outpatient', 'SNF/Rehab', 'Telepractice', 'Other'] as const;
@@ -16,6 +16,9 @@ export const Step1CaseSnapshot: React.FC<StepProps> = ({ state, setState, onPhiW
         concerns: prev.caseSnapshot.concerns.includes(value)
           ? prev.caseSnapshot.concerns.filter((c: Concern) => c !== value)
           : [...prev.caseSnapshot.concerns, value],
+        // The initial target must be one of the selected areas.
+        initialTarget:
+          prev.caseSnapshot.initialTarget === value && prev.caseSnapshot.concerns.includes(value) ? '' : prev.caseSnapshot.initialTarget,
       },
     }));
   };
@@ -75,16 +78,39 @@ export const Step1CaseSnapshot: React.FC<StepProps> = ({ state, setState, onPhiW
       <p className="pill">Broad age group: {ageGroupFromAge(cs.age)}</p>
 
       <fieldset>
-        <legend>Disorder/Concern *</legend>
-        <div className="chipsWrap">
-          {concernOptions.map((c: Concern) => (
-            <label key={c} className={`chip ${cs.concerns.includes(c) ? 'selected' : ''}`}>
-              <input type="checkbox" checked={cs.concerns.includes(c)} onChange={() => toggleConcern(c)} />
-              {c}
-            </label>
-          ))}
-        </div>
+        <legend>Disorder areas / concerns * (select all that apply)</legend>
+        {concernGroups.map((group) => (
+          <div key={group} className="chipGroup">
+            <p className="chipGroupLabel">{group}</p>
+            <div className="chipsWrap">
+              {concernOptions
+                .filter((o) => o.group === group)
+                .map((o) => (
+                  <label key={o.value} className={`chip ${cs.concerns.includes(o.value) ? 'selected' : ''}`}>
+                    <input type="checkbox" checked={cs.concerns.includes(o.value)} onChange={() => toggleConcern(o.value)} />
+                    {o.label}
+                  </label>
+                ))}
+            </div>
+          </div>
+        ))}
       </fieldset>
+
+      {cs.concerns.includes('other') ? (
+        <label>
+          Describe the other area *
+          <input
+            value={cs.otherConcern}
+            placeholder="e.g., auditory processing"
+            onChange={(e) =>
+              setState((prev: WizardData) => ({
+                ...prev,
+                caseSnapshot: { ...prev.caseSnapshot, otherConcern: e.target.value },
+              }))
+            }
+          />
+        </label>
+      ) : null}
 
       <PhiField
         fieldId="step1_functional_problem"
@@ -188,19 +214,22 @@ export const Step1CaseSnapshot: React.FC<StepProps> = ({ state, setState, onPhiW
         Initial target area *
         <select
           value={cs.initialTarget}
+          disabled={!cs.concerns.length}
           onChange={(e) =>
             setState((prev: WizardData) => ({
               ...prev,
               caseSnapshot: { ...prev.caseSnapshot, initialTarget: e.target.value as Concern },
             }))
           }
-          >
-            <option value="">Select</option>
-            {concernOptions.map((c: Concern) => (
-              <option key={c} value={c}>
-                {c}
+        >
+          <option value="">{cs.concerns.length ? 'Select the area to focus on first' : 'Select disorder areas above first'}</option>
+          {concernOptions
+            .filter((o) => cs.concerns.includes(o.value))
+            .map((o) => (
+              <option key={o.value} value={o.value}>
+                {concernLabel(o.value, cs.otherConcern)}
               </option>
-          ))}
+            ))}
         </select>
       </label>
 

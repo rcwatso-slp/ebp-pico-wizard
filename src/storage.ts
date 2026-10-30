@@ -21,6 +21,7 @@ export const getDefaultState = (): WizardData => ({
     setting: '',
     age: '',
     concerns: [],
+    otherConcern: '',
     functionalProblem: '',
     assessmentAnchors: [{ id: crypto.randomUUID(), measure: '', finding: '' }],
     initialTarget: '',
@@ -108,6 +109,9 @@ export const loadState = (): WizardData => {
     // Backward compatibility for older saved state created before keywordsEdited existed.
     if (typeof parsed.step3.keywordsEdited !== 'boolean') {
       parsed.step3.keywordsEdited = false;
+    }
+    if (typeof parsed.caseSnapshot.otherConcern !== 'string') {
+      parsed.caseSnapshot.otherConcern = '';
     }
     if (typeof parsed.step3.elicitPrompt !== 'string') {
       parsed.step3.elicitPrompt = '';

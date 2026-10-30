@@ -1,19 +1,54 @@
 import type { CandidateArticle, Concern, ConstraintKey, GoalTemplate, WizardData } from './types';
 
-export const concernOptions: Concern[] = [
-  'CAS',
-  'phonology',
-  'language',
-  'fluency',
-  'voice',
-  'dysarthria',
-  'aphasia',
-  'cognition',
-  'dysphagia',
-  'AAC',
-  'social communication',
-  'other',
+export interface ConcernOption {
+  value: Concern;
+  label: string;
+  group: string;
+  // Terms used when building Step 3 search queries.
+  searchTerms: string[];
+}
+
+export const concernOptions: ConcernOption[] = [
+  { group: 'Speech sound & motor speech', value: 'phonology', label: 'Speech sound disorder (articulation/phonology)', searchTerms: ['speech sound disorder'] },
+  { group: 'Speech sound & motor speech', value: 'CAS', label: 'Childhood apraxia of speech (CAS)', searchTerms: ['childhood apraxia of speech'] },
+  { group: 'Speech sound & motor speech', value: 'dysarthria', label: 'Dysarthria', searchTerms: ['dysarthria'] },
+  { group: 'Speech sound & motor speech', value: 'apraxia of speech', label: 'Acquired apraxia of speech', searchTerms: ['apraxia of speech'] },
+  { group: 'Speech sound & motor speech', value: 'resonance', label: 'Resonance / cleft palate', searchTerms: ['cleft palate', 'velopharyngeal dysfunction'] },
+  { group: 'Language & literacy', value: 'late language emergence', label: 'Late language emergence (late talkers)', searchTerms: ['late talkers', 'late language emergence'] },
+  { group: 'Language & literacy', value: 'language', label: 'Spoken language (expressive/receptive)', searchTerms: ['language disorder'] },
+  { group: 'Language & literacy', value: 'DLD', label: 'Developmental language disorder (DLD)', searchTerms: ['developmental language disorder'] },
+  { group: 'Language & literacy', value: 'literacy', label: 'Written language / literacy', searchTerms: ['literacy'] },
+  { group: 'Autism & social communication', value: 'autism', label: 'Autism', searchTerms: ['autism', 'autistic'] },
+  { group: 'Autism & social communication', value: 'social communication', label: 'Social communication', searchTerms: ['social communication'] },
+  { group: 'Autism & social communication', value: 'Down syndrome', label: 'Down syndrome', searchTerms: ['Down syndrome'] },
+  { group: 'Autism & social communication', value: 'AAC', label: 'AAC (augmentative & alternative communication)', searchTerms: ['augmentative and alternative communication'] },
+  { group: 'Autism & social communication', value: 'selective mutism', label: 'Selective mutism', searchTerms: ['selective mutism'] },
+  { group: 'Fluency & voice', value: 'fluency', label: 'Stuttering', searchTerms: ['stuttering'] },
+  { group: 'Fluency & voice', value: 'cluttering', label: 'Cluttering', searchTerms: ['cluttering'] },
+  { group: 'Fluency & voice', value: 'voice', label: 'Voice', searchTerms: ['voice disorder'] },
+  { group: 'Fluency & voice', value: 'gender-affirming voice', label: 'Gender-affirming voice & communication', searchTerms: ['gender-affirming voice', 'transgender voice'] },
+  { group: 'Adult neurogenic & cognition', value: 'aphasia', label: 'Aphasia', searchTerms: ['aphasia'] },
+  { group: 'Adult neurogenic & cognition', value: 'cognition', label: 'Cognitive-communication (TBI, dementia, RHD)', searchTerms: ['cognitive-communication'] },
+  { group: 'Swallowing, feeding & hearing', value: 'dysphagia', label: 'Dysphagia (swallowing)', searchTerms: ['dysphagia'] },
+  { group: 'Swallowing, feeding & hearing', value: 'pediatric feeding', label: 'Pediatric feeding disorder', searchTerms: ['pediatric feeding disorder'] },
+  { group: 'Swallowing, feeding & hearing', value: 'hearing loss', label: 'Hearing loss / aural rehabilitation', searchTerms: ['hearing loss'] },
+  { group: 'Other', value: 'other', label: 'Other (describe)', searchTerms: [] },
 ];
+
+export const concernGroups: string[] = Array.from(new Set(concernOptions.map((o) => o.group)));
+
+const findConcern = (value: Concern): ConcernOption | undefined => concernOptions.find((o) => o.value === value);
+
+// Readable name for a stored concern; "other" shows what the student typed.
+export const concernLabel = (value: Concern, otherText = ''): string => {
+  if (value === 'other') return otherText.trim() || 'other';
+  return findConcern(value)?.label ?? value;
+};
+
+export const concernSearchTerms = (value: Concern, otherText = ''): string[] => {
+  if (value === 'other') return otherText.trim() ? [otherText.trim()] : [];
+  return findConcern(value)?.searchTerms ?? [value];
+};
 
 export const constraintOptions: ConstraintKey[] = [
   'frequency/time',
@@ -42,10 +77,10 @@ export const buildCaseSnapshotText = (state: WizardData): string => {
     .join('; ');
 
   return [
-    `In a ${cs.setting || 'clinical'} setting, this ${ageGroup} client presents with ${cs.concerns.join(', ') || 'unspecified concern'}.`,
+    `In a ${cs.setting || 'clinical'} setting, this ${ageGroup} client presents with ${cs.concerns.map((c) => concernLabel(c, cs.otherConcern)).join(', ') || 'unspecified concern'}.`,
     `Primary participation issue: ${cs.functionalProblem || 'not provided'}.`,
     anchors ? `Assessment anchors include ${anchors}.` : '',
-    `Initial target area is ${cs.initialTarget || 'not selected'}.`,
+    `Initial target area is ${cs.initialTarget ? concernLabel(cs.initialTarget, cs.otherConcern) : 'not selected'}.`,
     cs.constraints.length ? `Constraints include ${cs.constraints.join(', ')}${cs.constraintNotes ? ` (${cs.constraintNotes})` : ''}.` : '',
   ]
     .filter(Boolean)
