@@ -140,21 +140,35 @@ export interface Step3State {
   searchLog: SearchLogEntry[];
 }
 
-export interface ArticleScore {
+export type MatchRating = 'yes' | 'partly' | 'no' | '';
+export type ChecklistAnswer = 'yes' | 'no' | 'unclear';
+export type StudyDesign =
+  | 'systematic-review'
+  | 'guideline'
+  | 'rct'
+  | 'nonrandomized'
+  | 'single-case'
+  | 'pre-post'
+  | 'case-report'
+  | 'qualitative'
+  | 'expert-opinion';
+
+// One student's critical appraisal of one saved article (see appraisal.ts).
+export interface ArticleAppraisal {
   articleId: string;
-  populationMatch: number;
-  interventionMatch: number;
-  outcomeMatch: number;
-  studyQuality: number;
-  clinicalFeasibility: number;
-  recencyFoundational: number;
+  relevance: { population: MatchRating; intervention: MatchRating; outcome: MatchRating };
+  setAside: boolean;
+  setAsideReason: string;
+  design: StudyDesign | '';
+  // Checklist item id -> answer.
+  quality: Record<string, ChecklistAnswer>;
+  applicability: { setting: MatchRating; dosage: MatchRating; priorities: MatchRating };
   includeTop: boolean;
-  manualOrder: number;
+  topReason: string;
 }
 
 export interface Step4State {
-  scores: Record<string, ArticleScore>;
-  autoSort: boolean;
+  appraisals: Record<string, ArticleAppraisal>;
 }
 
 export interface EvidenceExtraction {

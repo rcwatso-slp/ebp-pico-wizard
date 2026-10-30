@@ -175,66 +175,41 @@ export const stepGuides: StepGuideContent[] = [
     ],
   },
   {
-    title: 'Screening and scoring articles',
+    title: 'Appraising the evidence',
     why:
-      'Not every article that matches your keywords answers your question. Scoring each one the same way helps you choose evidence that fits your client and is strong enough to rely on.',
+      'Critical appraisal is how clinicians decide which evidence to trust. You ask three questions about every article: does it answer my question, how strong is the study, and does it fit my client? The checklists here are short teaching versions of tools professionals use, such as PEDro-P, RoBiNT, AMSTAR 2, and CASP.',
     steps: [
-      'Read at least the abstract and methods of each article.',
-      'Score each criterion 0, 1, or 2 using the rubric below.',
-      'Check the totals, but also look for any 0 on population or intervention.',
-      'Select your top 2–5 articles to carry forward.',
+      'Open the article. Most answers are in the abstract and the Methods.',
+      'Match: rate how well the population, intervention, and outcome match your PICO. Set aside articles that clearly don\u2019t fit, with a reason.',
+      'Design: identify the study design. Use \u201cHelp me identify the design\u201d if you\u2019re unsure. The design sets the level of evidence.',
+      'Quality: answer the checklist for that design. Choose Unclear when the article doesn\u2019t say.',
+      'Fit: judge whether you could use it with your client, in your setting, at that dosage.',
+      'Choose your top 2\u20135 and explain why each one made the cut.',
     ],
-    examples: [],
-    rubric: [
+    examples: [
       {
-        criterion: 'Population match',
-        levels: [
-          'Different population (e.g., adults when your client is a child).',
-          'Partly similar (same diagnosis but different age or severity).',
-          'Closely matches your client.',
-        ],
+        label: 'PubMed\u2019s \u201cReview\u201d tag',
+        weak: 'It says Review, so it\u2019s a systematic review (Level Ia).',
+        strong: 'It says Review but not Systematic Review, and there is no search method, so it\u2019s a narrative review (Level IV).',
+        why: 'Only reviews with a systematic, reported search count as systematic reviews.',
       },
       {
-        criterion: 'Intervention match',
-        levels: ['A different approach.', 'A related or modified version.', 'The same approach you are asking about.'],
-      },
-      {
-        criterion: 'Outcome match',
-        levels: ['Outcome is not relevant to your goal.', 'A related outcome.', 'Measures the outcome you care about.'],
-      },
-      {
-        criterion: 'Study quality',
-        levels: [
-          'Case report, expert opinion, or no comparison.',
-          'Group or single-case design with limited experimental control.',
-          'Systematic review, randomized controlled trial, or well-controlled single-case experimental design.',
-        ],
-      },
-      {
-        criterion: 'Clinical feasibility',
-        levels: [
-          'Can’t be done in your setting (equipment, dosage, training).',
-          'Possible with adaptations.',
-          'Doable as described.',
-        ],
-      },
-      {
-        criterion: 'Recency / foundational',
-        levels: [
-          'Older and replaced by newer work.',
-          'Older but still widely cited.',
-          'Recent (about the last 10 years) or a foundational study.',
-        ],
+        label: 'Reason for a top article',
+        weak: 'Good study.',
+        strong: 'Randomized trial rated Strong (7/9); same intervention and outcome; twice-weekly dosage fits our schedule.',
+        why: 'A good reason names the design, quality, and fit, so a supervisor can follow your thinking.',
       },
     ],
     pitfalls: [
-      'Scoring from the title alone.',
-      'Choosing a high-total article that scores 0 on population; it may not apply to your client.',
-      'Rating study quality by journal name instead of study design.',
+      'Rating quality from the design alone. A randomized trial can still be poorly run.',
+      'Answering Yes when the article doesn\u2019t actually report it. Choose Unclear instead.',
+      'Picking the highest level of evidence even when the population is very different from your client.',
+      'Skipping single-case designs. Well-controlled single-case studies are strong evidence for many SLP treatments.',
     ],
     selfCheck: [
-      'Could I explain each score to my supervisor in one sentence?',
-      'Do my top picks actually answer my PICO question?',
+      'Did I check the Methods, not just the abstract, for each answer?',
+      'Could I defend each top pick on design, quality, and fit?',
+      'Did I record a reason for every article I set aside?',
     ],
   },
   {

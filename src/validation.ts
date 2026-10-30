@@ -1,4 +1,5 @@
 import { conceptKeys, conceptLabels, MIN_TERMS_PER_CONCEPT } from './searchTerms';
+import { appraisableArticles, appraisalComplete, appraisalFor, relevanceDone, topArticleIds } from './appraisal';
 import type { WizardData } from './types';
 
 const hasText = (v: string): boolean => v.trim().length > 0;
@@ -31,15 +32,22 @@ export const isStep2Complete = (s: WizardData): boolean =>
 
 export const isStep3Complete = (s: WizardData): boolean => s.step3.candidateArticles.filter((a) => hasText(a.title)).length >= 2;
 
+// Every saved article gets a relevance screen; the top 2-5 need a full appraisal and a reason.
 export const isStep4Complete = (s: WizardData): boolean => {
-  const selected = Object.values(s.step4.scores).filter((v) => v.includeTop).length;
-  return selected >= 2 && selected <= 5;
+  const top = topArticleIds(s);
+  return (
+    appraisableArticles(s).every((a) => relevanceDone(appraisalFor(s, a.id))) &&
+    top.length >= 2 &&
+    top.length <= 5 &&
+    top.every((id) => {
+      const a = appraisalFor(s, id);
+      return appraisalComplete(a) && !a.setAside && hasText(a.topReason);
+    })
+  );
 };
 
 export const isStep5Complete = (s: WizardData): boolean => {
-  const selectedIds = Object.values(s.step4.scores)
-    .filter((v) => v.includeTop)
-    .map((v) => v.articleId);
+  const selectedIds = topArticleIds(s);
 
   const completed = selectedIds.filter((id) => {
     const e = s.step5.extractions[id];
@@ -128,9 +136,13 @@ export const missingRequirements = (s: WizardData, step: number): string[] => {
     const titled = s.step3.candidateArticles.filter((a) => hasText(a.title)).length;
     if (titled < 2) missing.push(`${2 - titled} more candidate article title(s)`);
   } else if (step === 4) {
-    const selected = Object.values(s.step4.scores).filter((v) => v.includeTop).length;
-    if (selected < 2) missing.push(`Select ${2 - selected} more top article(s)`);
-    if (selected > 5) missing.push('Select no more than 5 top articles');
+    const unscreened = appraisableArticles(s).filter((a) => !relevanceDone(appraisalFor(s, a.id))).length;
+    if (unscreened) missing.push(`Check relevance for ${unscreened} more article${unscreened === 1 ? '' : 's'}`);
+    const top = topArticleIds(s);
+    if (top.length < 2) missing.push(`Choose ${2 - top.length} more top article${2 - top.length === 1 ? '' : 's'}`);
+    if (top.length > 5) missing.push('Choose no more than 5 top articles');
+    if (top.some((id) => !appraisalComplete(appraisalFor(s, id)))) missing.push('Finish the appraisal for each top article');
+    if (top.some((id) => !hasText(appraisalFor(s, id).topReason))) missing.push('Give a reason for each top article');
   } else if (step === 5 && !isStep5Complete(s)) {
     missing.push('Complete all required fields for at least 2 top articles');
   } else if (step === 6) {

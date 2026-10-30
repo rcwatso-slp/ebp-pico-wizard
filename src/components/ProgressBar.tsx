@@ -7,7 +7,7 @@ interface ProgressBarProps {
   onJump: (index: number) => void;
 }
 
-export const stepLabels = ['Welcome', 'Case', 'PICO', 'Search', 'Screen', 'Extract', 'Plan'];
+export const stepLabels = ['Welcome', 'Case', 'PICO', 'Search', 'Appraise', 'Extract', 'Plan'];
 
 export const ProgressBar: React.FC<ProgressBarProps> = ({ currentStep, completed, maxUnlocked, onJump }) => (
   <nav className="stepper" aria-label="Wizard steps">

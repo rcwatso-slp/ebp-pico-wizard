@@ -9,7 +9,7 @@ Static React app for SLP student clinicians to complete a locked evidence-based 
 - Required field validation per step.
 - Step 3 literature search against PubMed and Europe PMC (free, no account or API key), with study-design tags, abstracts, and one-click add to candidate articles (`src/search.ts`).
 - Step 3 keyword sorter and Boolean query builder (quoted phrases, OR within a concept, AND between concepts).
-- Step 4 Top Articles enforcement (min 2, max 5).
+- Step 4 guided critical appraisal (`src/appraisal.ts`): PICO match, study design with level of evidence (ASHA/SIGN), design-matched quality checklists adapted from PEDro-P, RoBiNT, AMSTAR 2, AGREE II, CASP, and JBI, fit to the client, then 2-5 top articles with reasons.
 - Step 5 extraction completion checks.
 - Step 6 goal/objective/method/progress/rationale requirements.
 - PHI safety banner + non-blocking pattern warnings (date-like or likely name patterns).

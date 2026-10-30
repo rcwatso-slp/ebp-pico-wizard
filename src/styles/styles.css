@@ -581,3 +581,50 @@ label.spaced { margin-top: .9rem; }
 .noteField { margin: .55rem 0 0; font-size: .88rem; }
 .manualForm { border: 1px dashed var(--border-strong); border-radius: var(--radius-sm); padding: .8rem; background: var(--surface); }
 .manualForm h4 { margin-top: 0; }
+
+/* ---------- Step 4 appraisal ---------- */
+
+.nowrap { white-space: nowrap; }
+.appraisalTable tbody tr { cursor: pointer; }
+.appraisalTable tbody tr.current { background: var(--primary-soft); }
+.appraisalTable td { font-size: .85rem; }
+button.linkLike { background: none; border: none; padding: 0; color: var(--primary); font-weight: 600; text-align: left; font-size: .88rem; display: inline; }
+button.linkLike:hover:not(:disabled) { background: none; color: var(--primary-hover); text-decoration: underline; }
+.status { font-size: .75rem; font-weight: 600; padding: .1rem .5rem; border-radius: 999px; border: 1px solid var(--border); margin-right: .3rem; text-transform: capitalize; }
+.status-appraised { background: var(--primary-soft); color: var(--primary); border-color: var(--primary-line); }
+.status-in-progress { background: var(--warn-soft); color: var(--warn); border-color: var(--warn-line); }
+.status-set-aside { background: var(--surface-muted); color: var(--text-muted); }
+.status-not-started { color: var(--text-muted); }
+
+.appraisalCard { background: var(--surface); border-color: var(--primary-line); }
+.appraisalTitle { display: block; font-size: 1.1rem; margin-bottom: .2rem; }
+.appraisalSection { border-top: 1px solid var(--border); margin-top: 1.1rem; padding-top: 1rem; }
+.appraisalSection h3 { margin: 0; display: flex; align-items: center; gap: .5rem; }
+.matchRow, .checklist li { display: flex; justify-content: space-between; align-items: center; gap: 1rem; padding: .55rem 0; border-bottom: 1px dashed var(--border); }
+.matchRow > div:first-child, .checklist li > div:first-child { display: flex; flex-direction: column; gap: .1rem; min-width: 0; }
+.checklist { list-style: none; margin: .5rem 0 0; padding: 0; counter-reset: q; }
+.checklist li > div:first-child > span:first-child::before { counter-increment: q; content: counter(q) '. '; font-weight: 600; }
+.segmented.choice { flex: none; margin: 0; }
+.segmented.choice button { padding: .3rem .7rem; font-size: .85rem; }
+.segmented.choice button.selected.opt-no { background: var(--danger); }
+.segmented.choice button.selected.opt-partly, .segmented.choice button.selected.opt-unclear { background: var(--warn); }
+.setAsideBox { background: var(--warn-soft); border: 1px solid var(--warn-line); border-radius: var(--radius-sm); padding: .7rem .85rem; margin-top: .75rem; font-size: .92rem; }
+.setAsideBox p { margin-bottom: .4rem; }
+.setAsideBox label:last-child { margin: .5rem 0 0; }
+.suggestBox { display: flex; justify-content: space-between; align-items: center; gap: .75rem; background: #eef1f6; border: 1px solid #d5dce8; border-radius: var(--radius-sm); padding: .55rem .75rem; margin-bottom: .75rem; font-size: .9rem; }
+.designPick { display: flex; align-items: flex-end; gap: .75rem; flex-wrap: wrap; }
+.designPick label { flex: 1; min-width: 14rem; margin-bottom: 0; }
+.finder { border: 1px solid var(--primary-line); border-radius: var(--radius-sm); padding: .75rem .9rem; background: var(--primary-soft); }
+.finderQ { font-weight: 600; margin-bottom: .2rem; }
+.levelBox { display: flex; align-items: baseline; gap: .6rem; margin: .75rem 0 0; font-size: .92rem; }
+.levelBadge { flex: none; font-weight: 700; font-size: .8rem; padding: .15rem .55rem; border-radius: 6px; background: var(--primary); color: #fff; }
+.levelBadge.q-moderate { background: var(--warn); }
+.levelBadge.q-weak { background: var(--danger); }
+.qualityResult { display: flex; align-items: baseline; gap: .6rem; margin: .75rem 0 0; font-size: .92rem; }
+.decisionTags { margin-bottom: .6rem; }
+.articleNav { border-top: 1px solid var(--border); margin-top: 1.1rem; padding-top: .75rem; }
+
+@media (max-width: 640px) {
+  .matchRow, .checklist li { flex-direction: column; align-items: flex-start; gap: .4rem; }
+  .suggestBox { flex-direction: column; align-items: flex-start; }
+}

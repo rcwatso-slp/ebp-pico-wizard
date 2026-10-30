@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { PhiField } from '../components/PhiField';
+import { topArticleIds } from '../appraisal';
 import type { StepProps } from '../common';
 import type { WizardData } from '../types';
 
@@ -84,9 +85,7 @@ export const Step5Extraction: React.FC<StepProps> = ({ state, setState, onPhiWar
   const [citationLoading, setCitationLoading] = useState<Record<string, boolean>>({});
   const [citationError, setCitationError] = useState<Record<string, string>>({});
 
-  const topIds = Object.values(state.step4.scores)
-    .filter((s) => s.includeTop)
-    .map((s) => s.articleId);
+  const topIds = topArticleIds(state);
 
   const autofillCitation = async (articleId: string): Promise<void> => {
     const article = state.step3.candidateArticles.find((a) => a.id === articleId);

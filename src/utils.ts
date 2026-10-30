@@ -1,4 +1,4 @@
-import type { CandidateArticle, CaseSnapshot, Concern, ConstraintKey, GoalTemplate, Severity, WizardData } from './types';
+import type { CaseSnapshot, Concern, ConstraintKey, GoalTemplate, Severity, WizardData } from './types';
 
 export interface ConcernOption {
   value: Concern;
@@ -126,29 +126,3 @@ export const phiPatternDetected = (value: string): boolean => {
 export const goalToText = (goal: GoalTemplate): string =>
   `${goal.behavior || '[behavior]'} ${goal.condition ? `under ${goal.condition}` : ''} ${goal.criterion ? `with ${goal.criterion}` : ''} ${goal.timeframe ? `within ${goal.timeframe}` : ''}`.replace(/\s+/g, ' ').trim();
 
-export const getScoreTotal = (s: {
-  populationMatch: number;
-  interventionMatch: number;
-  outcomeMatch: number;
-  studyQuality: number;
-  clinicalFeasibility: number;
-  recencyFoundational: number;
-}): number =>
-  s.populationMatch + s.interventionMatch + s.outcomeMatch + s.studyQuality + s.clinicalFeasibility + s.recencyFoundational;
-
-export const orderedArticles = (articles: CandidateArticle[], scores: WizardData['step4']['scores'], autoSort: boolean): CandidateArticle[] => {
-  const withOrder = articles.map((article, idx) => {
-    const score = scores[article.id];
-    const total = score ? getScoreTotal(score) : 0;
-    return {
-      article,
-      total,
-      order: score?.manualOrder ?? idx,
-    };
-  });
-
-  if (autoSort) {
-    return withOrder.sort((a, b) => b.total - a.total).map((x) => x.article);
-  }
-  return withOrder.sort((a, b) => a.order - b.order).map((x) => x.article);
-};

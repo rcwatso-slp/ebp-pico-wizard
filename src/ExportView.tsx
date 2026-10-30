@@ -2,7 +2,8 @@ import React, { useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { buildElicitPrompt } from './searchTerms';
 import type { WizardData } from './types';
-import { buildCaseSnapshotText, getScoreTotal, goalToText, orderedArticles } from './utils';
+import { appraisableArticles, appraisalFor, designInfo, qualitySummary, topArticleIds } from './appraisal';
+import { buildCaseSnapshotText, goalToText } from './utils';
 
 interface ExportViewProps {
   state: WizardData;
@@ -13,10 +14,7 @@ export const ExportView: React.FC<ExportViewProps> = ({ state }) => {
     window.scrollTo({ top: 0 });
   }, []);
 
-  const ordered = orderedArticles(state.step3.candidateArticles, state.step4.scores, true);
-  const topIds = Object.values(state.step4.scores)
-    .filter((s) => s.includeTop)
-    .map((s) => s.articleId);
+  const topIds = topArticleIds(state);
   const fullElicitPrompt = buildElicitPrompt(state);
 
   return (
@@ -91,40 +89,59 @@ export const ExportView: React.FC<ExportViewProps> = ({ state }) => {
       </section>
 
       <section className="exportSection">
-        <h2>Candidate + Scoring Table</h2>
+        <h2>Article Appraisals</h2>
         <table>
           <thead>
             <tr>
-              <th>Title</th>
-              <th>Year</th>
-              <th>Link</th>
-              <th>Total</th>
-              <th>Top</th>
+              <th>Article</th>
+              <th>Fit (P / I / O)</th>
+              <th>Design and level</th>
+              <th>Quality</th>
+              <th>Fits client</th>
+              <th>Decision</th>
             </tr>
           </thead>
           <tbody>
-            {ordered.map((a) => {
-              const score = state.step4.scores[a.id];
+            {appraisableArticles(state).map((a) => {
+              const ap = appraisalFor(state, a.id);
+              const d = designInfo(ap.design);
+              const q = qualitySummary(ap);
+              const fit = (v: string): string => (v ? v : '\u2013');
               return (
                 <tr key={a.id}>
-                  <td>{a.title}</td>
-                  <td>{a.year}</td>
-                  <td>{a.link}</td>
-                  <td>{score ? getScoreTotal(score) : 0}</td>
-                  <td>{score?.includeTop ? 'Yes' : 'No'}</td>
+                  <td>
+                    {a.title}
+                    {a.year ? ` (${a.year})` : ''}
+                  </td>
+                  <td>
+                    {fit(ap.relevance.population)} / {fit(ap.relevance.intervention)} / {fit(ap.relevance.outcome)}
+                  </td>
+                  <td>{ap.setAside ? '\u2013' : d ? `${d.level}: ${d.label}` : '\u2013'}</td>
+                  <td>{ap.setAside ? '\u2013' : q.rating ? `${q.rating} (${q.yes}/${q.total})` : '\u2013'}</td>
+                  <td>
+                    {ap.setAside
+                      ? '\u2013'
+                      : `${fit(ap.applicability.setting)} / ${fit(ap.applicability.dosage)} / ${fit(ap.applicability.priorities)}`}
+                  </td>
+                  <td>{ap.includeTop ? 'Top article' : ap.setAside ? `Set aside: ${ap.setAsideReason}` : 'Not selected'}</td>
                 </tr>
               );
             })}
           </tbody>
         </table>
+        <p className="muted tiny">Fits client: setting / dosage / client and family priorities.</p>
       </section>
 
       <section className="exportSection">
-        <h2>Top Article Selections</h2>
+        <h2>Top Articles and Reasons</h2>
         <ul>
           {topIds.map((id) => {
             const a = state.step3.candidateArticles.find((x) => x.id === id);
-            return <li key={id}>{a?.title || id}</li>;
+            return (
+              <li key={id}>
+                <strong>{a?.title || id}</strong>: {appraisalFor(state, id).topReason}
+              </li>
+            );
           })}
         </ul>
       </section>

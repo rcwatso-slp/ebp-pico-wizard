@@ -1,6 +1,7 @@
 import React from 'react';
 import { PhiField } from '../components/PhiField';
 import { goalToText } from '../utils';
+import { topArticleIds } from '../appraisal';
 import type { StepProps } from '../common';
 
 const goalFields = [
@@ -13,9 +14,8 @@ const goalFields = [
 const sessionStructures = ['1:1 direct therapy', 'small group', 'hybrid direct + caregiver coaching', 'telepractice', 'other'];
 
 export const Step6Plan: React.FC<StepProps> = ({ state, setState, onPhiWarning }) => {
-  const topArticles = Object.values(state.step4.scores)
-    .filter((s) => s.includeTop)
-    .map((s) => state.step3.candidateArticles.find((a) => a.id === s.articleId))
+  const topArticles = topArticleIds(state)
+    .map((id) => state.step3.candidateArticles.find((a) => a.id === id))
     .filter((a): a is NonNullable<typeof a> => !!a);
 
   return (

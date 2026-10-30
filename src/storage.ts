@@ -1,4 +1,5 @@
-import { APP_VERSION, type WizardData } from './types';
+import { blankAppraisal } from './appraisal';
+import { APP_VERSION, type MatchRating, type WizardData } from './types';
 
 const STORAGE_KEY = 'ebp_wizard_state_v1';
 
@@ -62,8 +63,7 @@ export const getDefaultState = (): WizardData => ({
     searchLog: [],
   },
   step4: {
-    scores: {},
-    autoSort: true,
+    appraisals: {},
   },
   step5: {
     extractions: {},
@@ -121,6 +121,34 @@ const migrateStep2 = (parsed: WizardData): void => {
   if (!Array.isArray(s2.keywords)) s2.keywords = [];
 };
 
+// Older saves scored articles 0-2 on six criteria. Carry over the top picks and any
+// population/intervention/outcome match ratings; the rest is appraised fresh.
+const migrateStep4 = (parsed: WizardData): void => {
+  const s4 = parsed.step4 as WizardData['step4'] & {
+    scores?: Record<string, { populationMatch: number; interventionMatch: number; outcomeMatch: number; includeTop: boolean }>;
+    autoSort?: boolean;
+  };
+  if (!s4.appraisals) {
+    const toMatch = (n: number): MatchRating => (n >= 2 ? 'yes' : n === 1 ? 'partly' : '');
+    s4.appraisals = Object.fromEntries(
+      Object.entries(s4.scores ?? {}).map(([id, score]) => [
+        id,
+        {
+          ...blankAppraisal(id),
+          relevance: {
+            population: toMatch(score.populationMatch),
+            intervention: toMatch(score.interventionMatch),
+            outcome: toMatch(score.outcomeMatch),
+          },
+          includeTop: score.includeTop,
+        },
+      ]),
+    );
+  }
+  delete s4.scores;
+  delete s4.autoSort;
+};
+
 export const loadState = (): WizardData => {
   const raw = localStorage.getItem(STORAGE_KEY);
   if (!raw) {
@@ -138,6 +166,7 @@ export const loadState = (): WizardData => {
     }
     migrateCaseSnapshot(parsed);
     migrateStep2(parsed);
+    migrateStep4(parsed);
     if (!Array.isArray(parsed.step3.searchLog)) {
       parsed.step3.searchLog = [];
     }
