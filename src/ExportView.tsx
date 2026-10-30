@@ -182,6 +182,7 @@ export const ExportView: React.FC<ExportViewProps> = ({ state }) => {
 
       <section className="exportSection">
         <h2>Therapy Plan</h2>
+        {state.step6.baseline ? <p><strong>Baseline:</strong> {state.step6.baseline}</p> : null}
         <p><strong>Long-term goal:</strong> {goalToText(state.step6.longTermGoal)}</p>
         <p><strong>Short-term objectives:</strong></p>
         <ul>
@@ -189,12 +190,30 @@ export const ExportView: React.FC<ExportViewProps> = ({ state }) => {
             <li key={goal.id}>{goalToText(goal)}</li>
           ))}
         </ul>
+        <h3>Treatment methods</h3>
         <p><strong>Session structure:</strong> {state.step6.methodology.sessionStructure}</p>
+        <p>
+          <strong>Dosage:</strong> {state.step6.methodology.dosage.sessionLength} per session, {state.step6.methodology.dosage.frequency}, for{' '}
+          {state.step6.methodology.dosage.duration}
+        </p>
         <p><strong>Cueing hierarchy:</strong> {state.step6.methodology.cueingHierarchy}</p>
         <p><strong>Feedback:</strong> {state.step6.methodology.feedbackTypeFrequency}</p>
         <p><strong>Materials:</strong> {state.step6.methodology.materialsList}</p>
-        <p><strong>Progress monitoring:</strong> {state.step6.progressMonitoring.probeSchedule}; {state.step6.progressMonitoring.metric}; {state.step6.progressMonitoring.masteryCriteria}</p>
-        <p><strong>Rationale references:</strong> {state.step6.rationaleArticleIds.map((id) => state.step3.candidateArticles.find((a) => a.id === id)?.title || id).join('; ')}</p>
+        {state.step6.methodology.adaptations ? <p><strong>Adaptations from the research:</strong> {state.step6.methodology.adaptations}</p> : null}
+        <h3>Progress monitoring</h3>
+        <p><strong>Measure:</strong> {state.step6.progressMonitoring.metric}</p>
+        <p><strong>Probe schedule:</strong> {state.step6.progressMonitoring.probeSchedule}</p>
+        <p><strong>Mastery criteria:</strong> {state.step6.progressMonitoring.masteryCriteria}</p>
+        <p><strong>If progress stalls:</strong> {state.step6.progressMonitoring.decisionRule}</p>
+        <h3>Rationale</h3>
+        <p>
+          <strong>Research evidence:</strong>{' '}
+          {state.step6.rationaleArticleIds
+            .map((id) => state.step5.extractions[id]?.citation || state.step3.candidateArticles.find((a) => a.id === id)?.title || id)
+            .join(' | ')}
+        </p>
+        <p><strong>Client and family perspective:</strong> {state.step6.rationale.clientPerspective}</p>
+        <p><strong>Clinical judgment:</strong> {state.step6.rationale.clinicalJudgment}</p>
       </section>
     </div>
   );

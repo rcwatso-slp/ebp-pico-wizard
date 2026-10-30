@@ -207,20 +207,28 @@ export interface GoalTemplate {
 }
 
 export interface Step6State {
+  // Where the client is now, usually from assessment results.
+  baseline: string;
   longTermGoal: GoalTemplate;
   shortTermObjectives: GoalTemplate[];
   methodology: {
     sessionStructure: string;
+    dosage: { sessionLength: string; frequency: string; duration: string };
     cueingHierarchy: string;
     feedbackTypeFrequency: string;
     materialsList: string;
+    // How the plan differs from the studies, and why (clinical expertise).
+    adaptations: string;
   };
   progressMonitoring: {
     probeSchedule: string;
     metric: string;
     masteryCriteria: string;
+    // What the clinician will change if progress stalls.
+    decisionRule: string;
   };
   rationaleArticleIds: string[];
+  rationale: { clientPerspective: string; clinicalJudgment: string };
 }
 
 export interface WizardData {

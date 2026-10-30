@@ -123,9 +123,11 @@ const StepView: React.FC = () => {
                       </strong>
                       {missing.length ? (
                         <ul className="navMissing" aria-label="Still needed to continue">
-                          {missing.map((m) => (
+                          {/* Keep the sticky footer short; the full list is in each section. */}
+                          {missing.slice(0, 3).map((m) => (
                             <li key={m}>{m}</li>
                           ))}
+                          {missing.length > 3 ? <li className="more">and {missing.length - 3} more</li> : null}
                         </ul>
                       ) : (
                         <div className="navReady">{current === 6 ? 'Plan complete: ready to export' : 'Ready for the next step'}</div>

@@ -70,20 +70,25 @@ export const getDefaultState = (): WizardData => ({
     synthesis: '',
   },
   step6: {
+    baseline: '',
     longTermGoal: createGoal(crypto.randomUUID()),
     shortTermObjectives: [createGoal(crypto.randomUUID()), createGoal(crypto.randomUUID())],
     methodology: {
       sessionStructure: '',
+      dosage: { sessionLength: '', frequency: '', duration: '' },
       cueingHierarchy: '',
       feedbackTypeFrequency: '',
       materialsList: '',
+      adaptations: '',
     },
     progressMonitoring: {
       probeSchedule: '',
       metric: '',
       masteryCriteria: '',
+      decisionRule: '',
     },
     rationaleArticleIds: [],
+    rationale: { clientPerspective: '', clinicalJudgment: '' },
   },
   phiIgnoredFields: {},
 });
@@ -166,6 +171,16 @@ const migrateStep5 = (parsed: WizardData): void => {
   });
 };
 
+// Older saves lack the baseline, dosage plan, adaptations, decision rule, and EBP rationale fields.
+const migrateStep6 = (parsed: WizardData): void => {
+  const s6 = parsed.step6;
+  if (typeof s6.baseline !== 'string') s6.baseline = '';
+  if (!s6.methodology.dosage) s6.methodology.dosage = { sessionLength: '', frequency: '', duration: '' };
+  if (typeof s6.methodology.adaptations !== 'string') s6.methodology.adaptations = '';
+  if (typeof s6.progressMonitoring.decisionRule !== 'string') s6.progressMonitoring.decisionRule = '';
+  if (!s6.rationale) s6.rationale = { clientPerspective: '', clinicalJudgment: '' };
+};
+
 export const loadState = (): WizardData => {
   const raw = localStorage.getItem(STORAGE_KEY);
   if (!raw) {
@@ -185,6 +200,7 @@ export const loadState = (): WizardData => {
     migrateStep2(parsed);
     migrateStep4(parsed);
     migrateStep5(parsed);
+    migrateStep6(parsed);
     if (!Array.isArray(parsed.step3.searchLog)) {
       parsed.step3.searchLog = [];
     }

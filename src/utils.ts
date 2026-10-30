@@ -123,6 +123,23 @@ export const phiPatternDetected = (value: string): boolean => {
   return dateLike.test(value) || likelyName.test(value);
 };
 
-export const goalToText = (goal: GoalTemplate): string =>
-  `${goal.behavior || '[behavior]'} ${goal.condition ? `under ${goal.condition}` : ''} ${goal.criterion ? `with ${goal.criterion}` : ''} ${goal.timeframe ? `within ${goal.timeframe}` : ''}`.replace(/\s+/g, ' ').trim();
+// Reads as a goal statement: "Within 12 weeks, the client will <behavior> <condition>, <criterion>."
+export const goalToText = (goal: GoalTemplate): string => {
+  const timeframe = goal.timeframe.trim().replace(/^(within|in|by)\s+/i, '');
+  const details = [goal.condition.trim(), goal.criterion.trim()].filter(Boolean).join(', ');
+  return `${timeframe ? `Within ${timeframe}, ` : ''}the client will ${goal.behavior.trim() || '[behavior]'}${details ? ` ${details}` : ''}.`
+    .replace(/\s+/g, ' ')
+    .replace(/\.\.$/, '.');
+};
+
+const VAGUE_VERBS = /\b(improve|improves|understand|understands|know|knows|learn|learns|increase|increases|work on|be able to)\b/i;
+
+// Plain-language problems with a goal; an empty list means it reads as measurable.
+export const goalIssues = (goal: GoalTemplate): string[] => {
+  const issues: string[] = [];
+  if (goal.behavior.trim() && VAGUE_VERBS.test(goal.behavior))
+    issues.push('Use an observable action, such as \u201cproduce,\u201d \u201crequest,\u201d or \u201cname,\u201d instead of \u201cimprove\u201d or \u201cunderstand.\u201d');
+  if (goal.criterion.trim() && !/\d/.test(goal.criterion)) issues.push('Add a number to the criterion, such as 80% or 4 of 5 opportunities.');
+  return issues;
+};
 

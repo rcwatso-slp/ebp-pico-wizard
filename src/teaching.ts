@@ -261,39 +261,39 @@ export const stepGuides: StepGuideContent[] = [
   {
     title: 'Writing the therapy plan',
     why:
-      'Your plan is where the evidence, your clinical judgment, and the client’s priorities come together. Each part should trace back to something you found: goals to your outcome, methods to the studies’ intervention and dosage.',
+      'Your plan is where research evidence, your clinical expertise, and the client\u2019s and family\u2019s priorities come together. Each part should trace back to something you found: goals to the treatment target and baseline, methods and dosage to the studies, and progress monitoring to the studies\u2019 outcome measures.',
     steps: [
-      'Long-term goal: behavior, condition, criterion, and timeframe.',
-      'Short-term objectives: 2–4 smaller steps that build toward the long-term goal.',
-      'Methodology: session structure, cueing hierarchy, feedback, and materials, based on your extracted studies.',
-      'Progress monitoring: how often you will probe, what you will measure, and what counts as mastery.',
-      'Rationale: choose the 2–3 studies that most directly support this plan.',
+      'Record the baseline, then write a long-term goal with a behavior, condition, criterion, and timeframe.',
+      'Break it into 2\u20134 short-term objectives that build toward the goal.',
+      'Plan methods and dosage using the studies; explain any changes you make.',
+      'Choose how and how often you will measure progress, and what you will change if progress stalls.',
+      'Write a rationale that covers research evidence, the client and family perspective, and your clinical judgment.',
     ],
     examples: [
       {
         label: 'Goal',
-        weak: 'Client will improve speech.',
+        weak: 'Client will improve communication.',
         strong:
-          'Within 12 weeks, the client will produce two- and three-syllable words accurately in structured play, given no more than one model, in 80% of opportunities across 3 consecutive sessions.',
-        why: 'The strong goal has a behavior, a condition, a criterion, and a timeframe, so anyone can tell whether it was met.',
+          'Within 12 weeks, the client will spontaneously request help or a preferred item during play routines, given a 5-second expectant pause, in 4 of 5 opportunities across 3 sessions.',
+        why: 'The strong goal has an observable behavior, a condition, a numeric criterion, and a timeframe, so anyone can tell whether it was met.',
       },
       {
-        label: 'Feedback plan',
-        weak: 'Give feedback.',
-        strong:
-          'Early on, give frequent, specific feedback on how the word was produced. As accuracy improves, reduce to occasional feedback on whether it was correct.',
-        why: 'It names the type and frequency of feedback and how it changes over time.',
+        label: 'Decision rule',
+        weak: 'I will keep going and see.',
+        strong: 'If requests haven\u2019t increased after 6 sessions, I will add a visual cue and review the plan with my supervisor.',
+        why: 'A decision rule says what you will change and when, based on data.',
       },
     ],
     pitfalls: [
       'Goals that measure something different from the outcomes in your studies.',
-      'Planning a much lower dosage than the studies used without saying why.',
-      'A mastery criterion that doesn’t match the goal’s criterion.',
+      'Planning much less treatment than the studies used without saying why.',
+      'A mastery criterion that doesn\u2019t match the goal\u2019s criterion.',
+      'A rationale that cites studies but leaves out the client\u2019s priorities or your own judgment.',
     ],
     selfCheck: [
       'Can I point to a study for my methods and dosage?',
-      'Does each short-term objective lead toward the long-term goal?',
-      'Would my supervisor know exactly how to measure progress from this plan?',
+      'Would someone else know exactly how to measure progress from this plan?',
+      'Does my rationale address all three parts of evidence-based practice?',
     ],
   },
 ];

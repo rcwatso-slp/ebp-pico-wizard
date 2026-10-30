@@ -53,30 +53,27 @@ export const isStep5Complete = (s: WizardData): boolean => {
   return top.length > 0 && top.every((id) => extractionComplete(extractionFor(s, id))) && hasText(s.step5.synthesis);
 };
 
-export const isStep6Complete = (s: WizardData): boolean => {
-  const ltg = s.step6.longTermGoal;
-  const validLtg = hasText(ltg.behavior) && hasText(ltg.condition) && hasText(ltg.criterion) && hasText(ltg.timeframe);
-  const validObj = s.step6.shortTermObjectives.filter(
-    (o) => hasText(o.behavior) && hasText(o.condition) && hasText(o.criterion) && hasText(o.timeframe),
-  ).length;
+const goalDone = (g: { behavior: string; condition: string; criterion: string; timeframe: string }): boolean =>
+  hasText(g.behavior) && hasText(g.condition) && hasText(g.criterion) && hasText(g.timeframe);
 
-  const m = s.step6.methodology;
-  const p = s.step6.progressMonitoring;
-
-  return !!(
-    validLtg &&
-    validObj >= 2 &&
-    hasText(m.sessionStructure) &&
-    hasText(m.cueingHierarchy) &&
-    hasText(m.feedbackTypeFrequency) &&
-    hasText(m.materialsList) &&
-    hasText(p.probeSchedule) &&
-    hasText(p.metric) &&
-    hasText(p.masteryCriteria) &&
-    s.step6.rationaleArticleIds.length >= 2 &&
-    s.step6.rationaleArticleIds.length <= 3
-  );
+const step6Parts = (s: WizardData): Record<string, boolean> => {
+  const p6 = s.step6;
+  const m = p6.methodology;
+  const p = p6.progressMonitoring;
+  const top = topArticleIds(s);
+  return {
+    'Long-term goal (all 4 parts)': goalDone(p6.longTermGoal),
+    'At least 2 complete objectives': p6.shortTermObjectives.filter(goalDone).length >= 2,
+    'Treatment methods': !!m.sessionStructure && [m.cueingHierarchy, m.feedbackTypeFrequency, m.materialsList].every(hasText),
+    'Planned dosage': [m.dosage.sessionLength, m.dosage.frequency, m.dosage.duration].every(hasText),
+    'Progress monitoring and decision rule': [p.metric, p.probeSchedule, p.masteryCriteria, p.decisionRule].every(hasText),
+    'At least 2 supporting studies': p6.rationaleArticleIds.filter((id) => top.includes(id)).length >= 2,
+    'Client and family perspective': hasText(p6.rationale.clientPerspective),
+    'Clinical judgment': hasText(p6.rationale.clinicalJudgment),
+  };
 };
+
+export const isStep6Complete = (s: WizardData): boolean => Object.values(step6Parts(s)).every(Boolean);
 
 export const completionByStep = (s: WizardData): boolean[] => [
   isStep0Complete(s),
@@ -135,17 +132,9 @@ export const missingRequirements = (s: WizardData, step: number): string[] => {
     if (open) missing.push(`Finish extracting ${open} article${open === 1 ? '' : 's'}`);
     if (!hasText(s.step5.synthesis)) missing.push('Summarize the evidence overall');
   } else if (step === 6) {
-    const done = (g: { behavior: string; condition: string; criterion: string; timeframe: string }): boolean =>
-      hasText(g.behavior) && hasText(g.condition) && hasText(g.criterion) && hasText(g.timeframe);
-    const m = s.step6.methodology;
-    const p = s.step6.progressMonitoring;
-    const objectives = s.step6.shortTermObjectives.filter(done).length;
-    const rationale = s.step6.rationaleArticleIds.length;
-    if (!done(s.step6.longTermGoal)) missing.push('Long-term goal (all 4 parts)');
-    if (objectives < 2) missing.push(`${2 - objectives} more complete objective(s)`);
-    if (![m.sessionStructure, m.cueingHierarchy, m.feedbackTypeFrequency, m.materialsList].every(hasText)) missing.push('Methodology');
-    if (![p.probeSchedule, p.metric, p.masteryCriteria].every(hasText)) missing.push('Progress monitoring');
-    if (rationale < 2 || rationale > 3) missing.push('2\u20133 rationale sources');
+    Object.entries(step6Parts(s)).forEach(([label, done]) => {
+      if (!done) missing.push(label);
+    });
   }
   return missing;
 };
