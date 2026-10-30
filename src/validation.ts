@@ -1,5 +1,6 @@
 import { conceptKeys, conceptLabels, MIN_TERMS_PER_CONCEPT } from './searchTerms';
 import { appraisableArticles, appraisalComplete, appraisalFor, relevanceDone, topArticleIds } from './appraisal';
+import { extractionComplete, extractionFor } from './extraction';
 import type { WizardData } from './types';
 
 const hasText = (v: string): boolean => v.trim().length > 0;
@@ -46,24 +47,10 @@ export const isStep4Complete = (s: WizardData): boolean => {
   );
 };
 
+// Every top article needs a complete extraction, plus an overall summary of the evidence.
 export const isStep5Complete = (s: WizardData): boolean => {
-  const selectedIds = topArticleIds(s);
-
-  const completed = selectedIds.filter((id) => {
-    const e = s.step5.extractions[id];
-    return !!(
-      e &&
-      hasText(e.citation) &&
-      hasText(e.participants) &&
-      hasText(e.interventionComponents) &&
-      hasText(e.dosage) &&
-      hasText(e.outcomeMeasures) &&
-      hasText(e.resultsSummary) &&
-      hasText(e.clinicalTakeaway)
-    );
-  }).length;
-
-  return completed >= 2;
+  const top = topArticleIds(s);
+  return top.length > 0 && top.every((id) => extractionComplete(extractionFor(s, id))) && hasText(s.step5.synthesis);
 };
 
 export const isStep6Complete = (s: WizardData): boolean => {
@@ -143,8 +130,10 @@ export const missingRequirements = (s: WizardData, step: number): string[] => {
     if (top.length > 5) missing.push('Choose no more than 5 top articles');
     if (top.some((id) => !appraisalComplete(appraisalFor(s, id)))) missing.push('Finish the appraisal for each top article');
     if (top.some((id) => !hasText(appraisalFor(s, id).topReason))) missing.push('Give a reason for each top article');
-  } else if (step === 5 && !isStep5Complete(s)) {
-    missing.push('Complete all required fields for at least 2 top articles');
+  } else if (step === 5) {
+    const open = topArticleIds(s).filter((id) => !extractionComplete(extractionFor(s, id))).length;
+    if (open) missing.push(`Finish extracting ${open} article${open === 1 ? '' : 's'}`);
+    if (!hasText(s.step5.synthesis)) missing.push('Summarize the evidence overall');
   } else if (step === 6) {
     const done = (g: { behavior: string; condition: string; criterion: string; timeframe: string }): boolean =>
       hasText(g.behavior) && hasText(g.condition) && hasText(g.criterion) && hasText(g.timeframe);

@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { buildElicitPrompt } from './searchTerms';
 import type { WizardData } from './types';
 import { appraisableArticles, appraisalFor, designInfo, qualitySummary, topArticleIds } from './appraisal';
+import { directionLabels, dosageText, findingLabels } from './extraction';
 import { buildCaseSnapshotText, goalToText } from './utils';
 
 interface ExportViewProps {
@@ -152,20 +153,31 @@ export const ExportView: React.FC<ExportViewProps> = ({ state }) => {
           const a = state.step3.candidateArticles.find((x) => x.id === id);
           const e = state.step5.extractions[id];
           if (!e) return null;
+          const d = designInfo(appraisalFor(state, id).design);
           return (
             <article key={id} className="exportCard">
               <h3>{a?.title}</h3>
+              {d ? <p><strong>Design:</strong> {d.label} (level {d.level})</p> : null}
               <p><strong>Citation:</strong> {e.citation}</p>
               <p><strong>Participants:</strong> {e.participants}</p>
               <p><strong>Intervention components:</strong> {e.interventionComponents}</p>
-              <p><strong>Dosage:</strong> {e.dosage}</p>
+              <p><strong>Dosage:</strong> {dosageText(e)}</p>
+              {e.materialsSetup ? <p><strong>Materials and setup:</strong> {e.materialsSetup}</p> : null}
               <p><strong>Outcome measures:</strong> {e.outcomeMeasures}</p>
-              <p><strong>Results:</strong> {e.resultsSummary}</p>
+              <p>
+                <strong>Results:</strong> {e.results.direction ? directionLabels[e.results.direction] : '\u2013'}; generalization:{' '}
+                {e.results.generalization ? findingLabels[e.results.generalization].toLowerCase() : '\u2013'}; maintenance:{' '}
+                {e.results.maintenance ? findingLabels[e.results.maintenance].toLowerCase() : '\u2013'}. {e.results.summary}
+              </p>
               <p><strong>Clinical takeaway:</strong> {e.clinicalTakeaway}</p>
-              {e.materialsSetup ? <p><strong>Materials/setup:</strong> {e.materialsSetup}</p> : null}
             </article>
           );
         })}
+      </section>
+
+      <section className="exportSection">
+        <h2>Evidence Summary</h2>
+        <p>{state.step5.synthesis}</p>
       </section>
 
       <section className="exportSection">

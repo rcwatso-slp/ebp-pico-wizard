@@ -171,17 +171,31 @@ export interface Step4State {
   appraisals: Record<string, ArticleAppraisal>;
 }
 
+export type ResultDirection = 'improved' | 'mixed' | 'no-difference' | 'worse';
+export type MeasuredFinding = 'yes' | 'partly' | 'no' | 'not-measured';
+
+// What a student pulls out of one top article (see extraction.ts).
 export interface EvidenceExtraction {
   articleId: string;
   citation: string;
   participants: string;
   interventionComponents: string;
-  dosage: string;
+  dosage: { sessionLength: string; frequency: string; duration: string; notes: string };
   outcomeMeasures: string;
-  resultsSummary: string;
+  results: {
+    direction: ResultDirection | '';
+    generalization: MeasuredFinding | '';
+    maintenance: MeasuredFinding | '';
+    summary: string;
+  };
   clinicalTakeaway: string;
   materialsSetup: string;
-  collapsed: boolean;
+}
+
+export interface Step5State {
+  extractions: Record<string, EvidenceExtraction>;
+  // The student's summary of what the top articles say together.
+  synthesis: string;
 }
 
 export interface GoalTemplate {
@@ -220,9 +234,7 @@ export interface WizardData {
   step2: Step2State;
   step3: Step3State;
   step4: Step4State;
-  step5: {
-    extractions: Record<string, EvidenceExtraction>;
-  };
+  step5: Step5State;
   step6: Step6State;
   phiIgnoredFields: Record<string, boolean>;
 }

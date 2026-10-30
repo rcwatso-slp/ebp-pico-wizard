@@ -215,32 +215,47 @@ export const stepGuides: StepGuideContent[] = [
   {
     title: 'Extracting the evidence',
     why:
-      'Extraction is where you find out what the study actually did and found. These details (especially dosage and outcome measures) are what you will copy into your treatment plan, so they need to come from the article, not a summary.',
+      'Extraction is where you find out what each study actually did and found. The details you pull out (who was studied, the active ingredients, the dosage, and the outcomes) become your treatment plan in Step 6, so they need to come from the article itself.',
     steps: [
-      'Read the methods and results sections, not just the abstract.',
-      'Participants: number, age range, diagnosis, severity.',
-      'Dosage: minutes per session, sessions per week, total weeks or sessions.',
-      'Outcome measures: what was measured and how (probes, standardized tests).',
-      'Results: did it work, how much, and did it generalize or maintain?',
-      'Clinical takeaway: what will you do differently for your client because of this study?',
+      'Work through one article at a time. Read the Methods and Results, not just the abstract.',
+      'Participants: number, age range, diagnosis, and severity.',
+      'Treatment: the active ingredients, plus dosage (session length, sessions per week, total length). Write NR if it isn\u2019t reported.',
+      'Outcomes: what was measured, whether it improved, and whether gains generalized and were maintained.',
+      'Clinical takeaway: what you will do differently for your client because of this study.',
+      'Finally, summarize what the evidence says together, including its strength and its gaps.',
     ],
     examples: [
+      {
+        label: 'Dosage',
+        weak: 'Twice a week.',
+        strong: '30-minute sessions, 2 per week, for 12 weeks (24 sessions); about 100 practice trials per session.',
+        why: 'Session length, frequency, and total length together tell you whether you can match the study\u2019s dosage.',
+      },
       {
         label: 'Clinical takeaway (hypothetical study)',
         weak: 'This therapy works.',
         strong:
-          'Accuracy improved on treated words for most participants after 4 weeks of 30-minute sessions twice a week, but gains on untreated words were small. I will use a similar dosage and probe untreated words weekly to watch for generalization.',
-        why: 'The strong version is specific about dosage and results, notes a limitation, and says how it changes your plan.',
+          'Accuracy improved on treated words for most participants, but gains on untreated words were small. I will use a similar dosage and probe untreated words weekly to watch for generalization.',
+        why: 'The strong version is specific about results, notes a limitation, and says how it changes your plan.',
+      },
+      {
+        label: 'Evidence summary',
+        weak: 'The studies show the treatment works.',
+        strong:
+          'Two strong studies agree the treatment improves the target, but most participants were younger than my client and maintenance was not measured.',
+        why: 'A good summary weighs agreement, strength, and gaps for your specific client.',
       },
     ],
     pitfalls: [
       'Copying the abstract into every field.',
-      'Leaving out dosage, which you will need for your plan.',
-      'Reporting only positive results and skipping limitations.',
+      'Leaving out dosage; you need it to plan sessions.',
+      'Marking generalization as Yes when the study never measured it.',
+      'Summarizing each study separately instead of saying what they show together.',
     ],
     selfCheck: [
-      'Did I find the dosage in the methods section?',
-      'Does my takeaway connect the study to my specific client?',
+      'Did I find the dosage in the Methods?',
+      'Does each takeaway connect the study to my client?',
+      'Does my summary say how strong the evidence is and what is missing?',
     ],
   },
   {

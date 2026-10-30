@@ -1,5 +1,5 @@
 import { blankAppraisal } from './appraisal';
-import { APP_VERSION, type MatchRating, type WizardData } from './types';
+import { APP_VERSION, type EvidenceExtraction, type MatchRating, type WizardData } from './types';
 
 const STORAGE_KEY = 'ebp_wizard_state_v1';
 
@@ -67,6 +67,7 @@ export const getDefaultState = (): WizardData => ({
   },
   step5: {
     extractions: {},
+    synthesis: '',
   },
   step6: {
     longTermGoal: createGoal(crypto.randomUUID()),
@@ -149,6 +150,22 @@ const migrateStep4 = (parsed: WizardData): void => {
   delete s4.autoSort;
 };
 
+// Older saves stored dosage and results as single text boxes; keep that text in the new fields.
+const migrateStep5 = (parsed: WizardData): void => {
+  if (typeof parsed.step5.synthesis !== 'string') parsed.step5.synthesis = '';
+  Object.values(parsed.step5.extractions).forEach((raw) => {
+    const e = raw as EvidenceExtraction & { dosage: unknown; resultsSummary?: string; collapsed?: boolean };
+    if (typeof e.dosage === 'string') {
+      e.dosage = { sessionLength: '', frequency: '', duration: '', notes: e.dosage };
+    }
+    if (!e.results) {
+      e.results = { direction: '', generalization: '', maintenance: '', summary: e.resultsSummary ?? '' };
+    }
+    delete e.resultsSummary;
+    delete e.collapsed;
+  });
+};
+
 export const loadState = (): WizardData => {
   const raw = localStorage.getItem(STORAGE_KEY);
   if (!raw) {
@@ -167,6 +184,7 @@ export const loadState = (): WizardData => {
     migrateCaseSnapshot(parsed);
     migrateStep2(parsed);
     migrateStep4(parsed);
+    migrateStep5(parsed);
     if (!Array.isArray(parsed.step3.searchLog)) {
       parsed.step3.searchLog = [];
     }
